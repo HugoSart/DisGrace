@@ -1,0 +1,56 @@
+options {
+    LOOKAHEAD=5;
+}
+
+PARSER_BEGIN(Lexer)
+
+public class Lexer {
+
+    public static void main(String[] args) {
+        try {
+            new Lexer(new java.io.FileInputStream(args[0])).S();
+            System.out.println("Syntax is okay");
+        } catch (Throwable e) {
+            // Catching Throwable is ugly but JavaCC throws Error objects!
+            System.out.println("Syntax check failed: " + e.getMessage());
+        }
+    }
+}
+
+PARSER_END(Lexer)
+
+SKIP: {" " | "\t" | "\n" | "\r" | < "//" (~["\r", "\n"])* > }
+
+TOKEN: {
+      <LPAREN: "(">
+    | <RPAREN: ")">
+    | <LBRACE: "{">
+    | <RBRACE: "}">
+    | <LBRACK: "[">
+    | <RBRACK: "]">
+    | <COMMA: ",">
+    | <ENDEXP: ";">
+    | <EQ: "=">
+
+    // Restricted
+    | <VAR: "var">
+    | <TYPE: "int" | "bool" | "string" >
+    | <BOOL: "true" | "false">
+
+    // Util
+    | <ID: <CHAR> (<CHAR> | <NUM>)* >
+    | <ARRAY: "[" <NUM> "]">
+
+    // Primitives
+    | <STR: ["\""] (<CHAR> | <NUM>)+ ["\""]>
+    | <CHAR: ["a"-"z"] | ["A"-"Z"] | ["_"]>
+    | <NUM: (["0"-"9"])+>
+}
+
+void S():       {} {EXPLIST() <EOF>}
+void EXPLIST(): {} {(EXP() <ENDEXP>)*}
+void EXP():     {} {VAR()}
+
+void VAR():     {} {<VAR> ID_LIST() ":" <TYPE>}
+void ID_LIST(): {} {(ID_DEF() "," ID_LIST()) | ID_DEF()}
+void ID_DEF():  {} {(<ID> <EQ> (<BOOL> | <NUM> | <STR>)) | <ID> <ARRAY> | <ID>}

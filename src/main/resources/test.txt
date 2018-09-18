@@ -1,0 +1,2 @@
+var b=1, a1=3, aff="oii9": bool; // ehaheuahuehau
+var aff[1]: bool;
