@@ -1,2 +1,22 @@
-var b=1, a1=3, aff="oii9": bool; // ehaheuahuehau
-var aff[1]: bool;
+var test=1: int;
+var test[], test1=1, array[10]: int;
+var aoou=true : bool;
+
+def func(arg2: int): string {
+
+    def child_func(): bool {
+
+        var test, test1, array[10]: int;
+        var aoou=true : bool;
+
+        def child_child_func(oi: string): int {
+
+            if (func()) {
+
+            }
+
+        }
+
+    }
+
+}

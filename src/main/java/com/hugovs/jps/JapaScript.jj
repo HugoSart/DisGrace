@@ -1,5 +1,5 @@
 options {
-    LOOKAHEAD=5;
+    LOOKAHEAD=2;
 }
 
 PARSER_BEGIN(Lexer)
@@ -29,28 +29,65 @@ TOKEN: {
     | <LBRACK: "[">
     | <RBRACK: "]">
     | <COMMA: ",">
-    | <ENDEXP: ";">
+    | <COLON: ":">
+    | <SEMICOLON: ";">
     | <EQ: "=">
+    | <OP: "+" | "-" | "/" | "*" | "%">
+    | <BOP: "==" | "<" | ">" | "<=" | ">=">
 
     // Restricted
+    | <DEF: "def">
     | <VAR: "var">
     | <TYPE: "int" | "bool" | "string" >
     | <BOOL: "true" | "false">
 
+    // Commands
+    | <CMD_IF: "if">
+    | <CMD_ELSE: "else">
+    | <CMD_FOR: "for">
+    | <CMD_WHILE: "while">
+    | <CMD_READ: "read">
+    | <CMD_WRITE: "write">
+    | <CMD_STOP: "stop">
+    | <CMD_SKIP: "skip">
+    | <CMD_RETURN: "return">
+
     // Util
     | <ID: <CHAR> (<CHAR> | <NUM>)* >
-    | <ARRAY: "[" <NUM> "]">
+    | <ARRAY_DEF: <LBRACK> <NUM> <RBRACK>>
+    | <ARRAY_DEC: <LBRACK><RBRACK>>
 
     // Primitives
-    | <STR: ["\""] (<CHAR> | <NUM>)+ ["\""]>
+    | <STR: ["\""] (<CHAR> | <NUM> | " ")* ["\""]>
     | <CHAR: ["a"-"z"] | ["A"-"Z"] | ["_"]>
     | <NUM: (["0"-"9"])+>
 }
 
-void S():       {} {EXPLIST() <EOF>}
-void EXPLIST(): {} {(EXP() <ENDEXP>)*}
-void EXP():     {} {VAR()}
+void S():           {} { PROGRAM() <EOF> }
+void PROGRAM():     {} { (VAR() <SEMICOLON> )* (SUBPROGRAM())* }
 
-void VAR():     {} {<VAR> ID_LIST() ":" <TYPE>}
-void ID_LIST(): {} {(ID_DEF() "," ID_LIST()) | ID_DEF()}
-void ID_DEF():  {} {(<ID> <EQ> (<BOOL> | <NUM> | <STR>)) | <ID> <ARRAY> | <ID>}
+void SUBPROGRAM():  {} { <DEF> <ID> <LPAREN> (VARARG())? <RPAREN> <COLON> <TYPE> SCOPE() }
+void SCOPE():       {} { <LBRACE> (VAR() <SEMICOLON> )* (SUBPROGRAM() | CMD())* <RBRACE> }
+
+// Command syntax
+void CMD():         {} { (CMD_IF() | CMD_FOR() | CMD_WHILE() | CMD_READ() | CMD_WRITE() | CMD_STOP() | CMD_SKIP() | CMD_RETURN() | CMD_SUB()) }
+void CMD_IF():      {} { <CMD_IF> <LPAREN> EXP() <RPAREN> SCOPE() (CMD_ELSE())? }
+void CMD_ELSE():    {} { <CMD_ELSE> ((CMD_IF())? | SCOPE()) }
+void CMD_FOR():     {} { <CMD_FOR> <LPAREN> VAR() <SEMICOLON> EXP() <SEMICOLON> VARARG() }
+void CMD_WHILE():   {} { <CMD_WHILE> <LPAREN> EXP() <RPAREN> }
+void CMD_READ():    {} { <CMD_READ> <ID> }
+void CMD_WRITE():   {} { <CMD_WRITE> EXP() }
+void CMD_STOP():    {} { <CMD_STOP> }
+void CMD_SKIP():    {} { <CMD_SKIP> }
+void CMD_RETURN():  {} { <CMD_RETURN> EXP() }
+void CMD_SUB():     {} { <ID> <LPAREN> (EXP() (<SEMICOLON> EXP())*)? <RPAREN> }
+
+void EXP():         {} { VALUE() ((<OP> | <BOP>) VALUE())* }
+
+// Variable syntax
+void VAR():         {} { <VAR> VARARG() }
+void VARARG():      {} { ID() (<COMMA> ID())* <COLON> <TYPE> }
+void ID():          {} { <ID> ATTRIBUTION() | <ID> (<ARRAY_DEF> | <ARRAY_DEC>) | <ID> }
+void ATTRIBUTION(): {} { (<OP>)? <EQ> (<NUM> | <BOOL> | <STR>) }
+
+void VALUE():       {} { CMD_SUB() | <NUM> | <ID>}
