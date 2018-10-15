@@ -64,7 +64,10 @@ TOKEN: {
 }
 
 void S():           {} { PROGRAM() <EOF> }
-void PROGRAM():     {} { (VAR() <SEMICOLON> )* (SUBPROGRAM())* }
+Program PROGRAM():  { Program program = new Program(); }
+    {
+        (VAR() <SEMICOLON> )* (SUBPROGRAM())*
+    }
 
 void SUBPROGRAM():  {} { <DEF> <ID> <LPAREN> (VARARG())? <RPAREN> <COLON> <TYPE> SCOPE() }
 void SCOPE():       {} { <LBRACE> (VAR() <SEMICOLON> )* (SUBPROGRAM() | CMD())* <RBRACE> }
@@ -87,7 +90,18 @@ void EXP():         {} { VALUE() ((<OP> | <BOP>) VALUE())* }
 // Variable syntax
 void VAR():         {} { <VAR> VARARG() }
 void VARARG():      {} { ID() (<COMMA> ID())* <COLON> <TYPE> }
-void ID():          {} { <ID> ATTRIBUTION() | <ID> (<ARRAY_DEF> | <ARRAY_DEC>) | <ID> }
+
+void ID():
+    {
+        Identifier id = new Identifier();
+    }
+    {
+          id.name = <ID> id.data = ATTRIBUTION()
+        | id.name = <ID> (<ARRAY_DEF> | <ARRAY_DEC>)
+        | <ID>
+
+    }
+
 void ATTRIBUTION(): {} { (<OP>)? <EQ> (<NUM> | <BOOL> | <STR>) }
 
 void VALUE():       {} { CMD_SUB() | <NUM> | <ID>}
