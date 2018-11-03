@@ -11,7 +11,7 @@ public class DuplicatedIdentifierException extends RuntimeException {
         super("Attempt to declare an already declared identifier");
     }
 
-    public DuplicatedIdentifierException(String message) {
-        super(message);
+    public DuplicatedIdentifierException(String id) {
+        super("Attempt to declare an already declared identifier: " + id);
     }
 }

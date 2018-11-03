@@ -1,22 +1,13 @@
-var test=1: int;
-var test[], test1=1, array[10]: int;
-var aoou=true : bool;
+var array[2], test: int;
+var variaver[]: bool;
 
-def func(arg2: int): string {
+def fun(arg1[], arg2: int; b2: bool): int {
 
-    def child_func(): bool {
+    var in: bool;
+    var test: int;
 
-        var test, test1, array[10]: int;
-        var aoou=true : bool;
+    def oi() {
+        var in: int;
+    };
 
-        def child_child_func(oi: string): int {
-
-            if (func()) {
-
-            }
-
-        }
-
-    }
-
-}
+};
