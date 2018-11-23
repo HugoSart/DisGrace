@@ -17,7 +17,6 @@ public class Subprogram extends Identifier {
 
     public void setParameters(List<Variable> parameters) {
         this.parameters = parameters;
-        block.addAll(parameters);
     }
 
     public void addParameter(Variable parameter) {

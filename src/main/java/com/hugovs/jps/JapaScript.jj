@@ -12,6 +12,12 @@ import java.util.ArrayList;
 import java.util.Stack;
 import java.io.*;
 import com.hugovs.jps.structure.semanthic.*;
+import com.hugovs.jps.structure.semanthic.command.*;
+import com.hugovs.jps.structure.semanthic.operation.*;
+import com.hugovs.jps.structure.semanthic.operation.bool.*;
+import com.hugovs.jps.structure.semanthic.operation.compare.*;
+import com.hugovs.jps.structure.semanthic.operation.integer.*;
+import com.hugovs.jps.structure.semanthic.operation.string.*;
 import com.hugovs.jps.structure.exception.*;
 
 public class Lexer {
@@ -45,9 +51,10 @@ TOKEN: {
     | <COMMA: ",">
     | <COLON: ":">
     | <SEMICOLON: ";">
-    | <EQ: "=">
+    | <ATTR: "=">
     | <OP: "+" | "-" | "/" | "*" | "%">
-    | <BOP: "==" | "<" | ">" | "<=" | ">=">
+    | <COP: "<" | ">" | "<=" | ">=" | "==" | "!=">
+    | <BOP: "!" | "&&" | "||" >
 
     // Restricted
     | <DEF: "def">
@@ -76,7 +83,14 @@ TOKEN: {
 }
 
 // Regra inicial
-void S():           {} { PROGRAM() <EOF> }
+void S():
+    {
+
+    }{(
+        PROGRAM() <EOF>
+    ){
+
+    }}
 
 // Regra do programa
 void PROGRAM():
@@ -97,18 +111,25 @@ Subprogram SUB_PROGRAM():
         Token typeToken = null, idToken = null;
         List<Variable> parameters = new ArrayList<Variable>();
     }{(
-        <DEF> idToken = <ID> <LPAREN> (parameters = PARAMETERS())? <RPAREN> (<COLON> typeToken = <TYPE>)? block = BLOCK()
+        <DEF> idToken = <ID> <LPAREN> (parameters = PARAMETERS())? <RPAREN> (<COLON> typeToken = <TYPE>)? block = BLOCK(parameters)
     ){
 
         String id = idToken.toString();
         Type returnType = typeToken == null ? Type.VOID : Type.valueOf(typeToken.toString().toUpperCase());
 
-        block.setParent(parent);
         subprogram.setId(id);
         subprogram.setReturnType(returnType);
         subprogram.setBlock(block);
         subprogram.setParameters(parameters);
+
         block.getParent().addIdentifier(subprogram);
+
+        for (Command cmd : block.getCommands())
+            if (cmd instanceof ReturnCommand) {
+                ReturnCommand returnCmd = (ReturnCommand)cmd;
+                if (returnCmd.getExpression().getType() != subprogram.getReturnType())
+                    throw new IncompatibleTypeException(returnCmd.getExpression().getType(), subprogram.getReturnType());
+            }
 
         return subprogram;
 
@@ -121,12 +142,8 @@ Block ROOT_BLOCK():
         Lexer.stack.push(block);
         List<Variable> varList = null;
     }{(
-        (varList = VAR_SECTION())? (EXPRESSION())?
+        (varList = VAR_SECTION() { block.addAll(varList); })? (STATEMENT())?
     ){
-
-        if (varList != null) {
-            block.addAll(varList);
-        }
 
         System.out.println("Identifiers found in block " + Lexer.blockCount + ": ");
         for (Identifier i : block.getIdentifiers().values())
@@ -137,18 +154,17 @@ Block ROOT_BLOCK():
     }}
 
 // Blocos internos no programa
-Block BLOCK():
+Block BLOCK(List<Variable> parameters):
     {
         Lexer.blockCount++;
         Block block = new Block();
+        block.setParent(Lexer.stack.peek());
+        block.addAll(parameters);
         Lexer.stack.push(block);
         List<Variable> varList = null;
     }{(
-        <LBRACE> (varList = VAR_SECTION())? (EXPRESSION())? <RBRACE>
+        <LBRACE> (varList = VAR_SECTION() {block.addAll(varList);} )? (STATEMENT())? <RBRACE>
     ){
-
-        if (varList != null)
-            block.addAll(varList);
 
         Lexer.stack.pop();
         return block;
@@ -156,29 +172,90 @@ Block BLOCK():
 
 //void SUB_PROGRAM_CALL(): {} { }
 
-void EXPRESSION():
+void STATEMENT():
     {
-        Subprogram sub;
+        Block block = Lexer.stack.peek();
+        Subprogram sub = null;
+        Command cmd = null;
     }{(
-        sub = SUB_PROGRAM() <SEMICOLON> (EXPRESSION())?//|   SUB_PROGRAM_CALL()
+        (sub = SUB_PROGRAM() | cmd = CMD())  <SEMICOLON> (STATEMENT())?//|   SUB_PROGRAM_CALL()
     ){
-
+        if (cmd != null)
+            block.addCommand(cmd);
     }}
 
 // Command syntax
-void CMD():         {} { CMD_IF() | CMD_FOR() | CMD_WHILE() | CMD_READ() | CMD_WRITE() | CMD_STOP() | CMD_SKIP() | CMD_RETURN() | CMD_SUB() | CMD_RETURN() }
-void CMD_IF():      {} { <CMD_IF> <LPAREN> EXP() <RPAREN> BLOCK() (CMD_ELSE())? }
-void CMD_ELSE():    {} { <CMD_ELSE> (CMD_IF() | BLOCK()) }
-void CMD_FOR():     {} { <CMD_FOR> <LPAREN> VAR() <SEMICOLON> EXP() <SEMICOLON> VAR_LIST() }
-void CMD_WHILE():   {} { <CMD_WHILE> <LPAREN> EXP() <RPAREN> }
-void CMD_READ():    {} { <CMD_READ> <ID> }
-void CMD_WRITE():   {} { <CMD_WRITE> EXP() }
-void CMD_STOP():    {} { <CMD_STOP> }
-void CMD_SKIP():    {} { <CMD_SKIP> }
-void CMD_RETURN():  {} { <CMD_RETURN> EXP() }
-void CMD_SUB():     {} { <ID> <LPAREN> (EXP() (<SEMICOLON> EXP())*)? <RPAREN> }
+Command CMD():
+    {
+        Command cmd = null;
+    }{(
+        cmd = CMD_RETURN() | cmd = CMD_SUB()
+        //cmd = CMD_IF() | cmd = CMD_FOR() | cmd = CMD_WHILE() | cmd = CMD_READ() | cmd = CMD_WRITE() |
+        //cmd = CMD_STOP() | cmd = CMD_SKIP() | cmd = CMD_RETURN()
+    ){
+        return cmd;
+    }}
 
-void EXP():         {} { VALUE() ((<OP> | <BOP>) VALUE())* }
+Command CMD_RETURN():
+    {
+        ReturnCommand cmd = new ReturnCommand();
+        Expression exp = new Expression();
+        exp.setType(Type.VOID);
+    }{(
+        <CMD_RETURN> (exp = EXPRESSION())?
+    ){
+        cmd.setExpression(exp);
+        return cmd;
+    }}
+
+Command CMD_SUB():
+    {
+        SubCommand cmd = new SubCommand();
+    }{(
+        <ID> <LPAREN> (EXPRESSION() (<SEMICOLON> EXPRESSION())*)? <RPAREN>
+    ){
+        return cmd;
+    }}
+
+/*Command CMD_IF():
+    {
+        IfCommand cmd = new IfCommand();
+    }{(
+        <CMD_IF> <LPAREN> EXP() <RPAREN> BLOCK() (CMD_ELSE())?
+    ){
+
+    }}*/
+
+//Command CMD_ELSE():    {} { <CMD_ELSE> (CMD_IF() | BLOCK()) }
+//Command CMD_FOR():     {} { <CMD_FOR> <LPAREN> VAR() <SEMICOLON> EXP() <SEMICOLON> VAR_LIST() }
+//Command CMD_WHILE():   {} { <CMD_WHILE> <LPAREN> EXP() <RPAREN> }
+//Command CMD_READ():    {} { <CMD_READ> <ID> }
+//Command CMD_WRITE():   {} { <CMD_WRITE> EXP() }
+//Command CMD_STOP():    {} { <CMD_STOP> }
+//Command CMD_SKIP():    {} { <CMD_SKIP> }
+
+Expression EXPRESSION():
+    {
+        Expression exp = new Expression();
+        Value v = null;
+        Operation op = null;
+    }{(
+        op = OPERATION() | v = VALUE()
+    ){
+
+        if (v != null) {
+            exp.setSingleton(true);
+            exp.setType(v.getType());
+            exp.setValue(v);
+        } else if (op != null) {
+            exp.setSingleton(false);
+            exp.setType(op.getType());
+            exp.addOperation(op);
+        }
+
+        return exp;
+
+    }}
 
 // Regra base para declaração de umaou mais variáveis
 List<Variable> VAR():
@@ -199,22 +276,26 @@ List<Variable> VAR_LIST():
     {
         List<Variable> varList = new ArrayList<Variable>(), ret = new ArrayList<Variable>();
         Variable var = new Variable();
-        Token idToken, lengthToken = null;
+        Token idToken;
+        Expression arrayExp = null, attrExp = null;
         boolean isArray = false;
     }{(
 
-        idToken = <ID> <LBRACK> ( lengthToken = <NUM>)? <RBRACK> (<COMMA> ret = VAR_LIST())? { isArray = true; }
-    |   idToken = <ID> (<COMMA> ret = VAR_LIST())?
+        idToken = <ID> <LBRACK> arrayExp = EXPRESSION() <RBRACK> (<COMMA> ret = VAR_LIST())? { isArray = true; }
+    |   idToken = <ID> (<ATTR> attrExp = EXPRESSION())? (<COMMA> ret = VAR_LIST())?
 
     ){
         String id = idToken.toString();
 
-        if (lengthToken != null) {
-            var.setLength(Integer.valueOf(lengthToken.toString()));
-        }
+        if (arrayExp != null && arrayExp.getType() != Type.INT)
+            throw new IncompatibleTypeException(Type.INT, arrayExp.getType());
+
+        if (attrExp != null)
+            var.setValue(attrExp);
 
         var.setId(id);
         var.setArray(isArray);
+        var.setLength(Integer.MAX_VALUE); //TODO: Dar um jeito aqui
         varList.addAll(ret);
         varList.add(var);
         return varList;
@@ -266,9 +347,113 @@ List<Variable> PARAM_LIST():
 
         var.setId(id);
         var.setArray(isArray);
+        var.setLength(Integer.MAX_VALUE);
+        var.setValue(new Value());
         varList.addAll(ret);
         varList.add(var);
         return varList;
     }}
 
-void VALUE():       {} { CMD_SUB() | <NUM> | <ID>}
+Value VALUE():
+    {
+        Token idToken = null, numToken = null, boolToken = null, strToken = null;
+        Block block = Lexer.stack.peek();
+        Value value = new Value();
+    }{(
+        numToken = <NUM> | boolToken = <BOOL> | strToken = <STR> | idToken = <ID> <LBRACK> numToken = <NUM> <RBRACK> | idToken = <ID>
+    ){
+
+        Type type = null;
+
+        Integer num = null;
+        if (numToken != null && idToken == null) {
+            num = Integer.valueOf(numToken.toString());
+            value.setValue(num);
+            type = Type.INT;
+        }
+
+        Boolean bool = null;
+        if (boolToken != null) {
+            bool = Boolean.valueOf(boolToken.toString());
+            value.setValue(bool);
+            type = Type.BOOL;
+        }
+
+        String str = null;
+        if (strToken != null) {
+            str = strToken.toString();
+            value.setValue(str);
+            type = Type.STRING;
+        }
+
+        Identifier id = null;
+        if (idToken != null) {
+            id = block.getIdentifier(idToken.toString());
+            if (id instanceof Variable) {
+                Variable var = ((Variable) id);
+                type = var.getType();
+                if (numToken != null) {
+                    if (!var.isArray()) throw new IncompatibleTypeException("Variable " + id + " is not an array");
+                    num = Integer.valueOf(numToken.toString());
+                    if (num >= var.getLength()) throw new InvalidArraySizeException(num);
+                } else if (var.isArray()) {
+                    throw new IncompatibleTypeException("Variable " + id + " is an array");
+                }
+
+                if (!var.isInitialized())
+                    throw new VariableNotInitializedException(var.getId());
+
+            }
+        }
+
+        value.setType(type);
+        return value;
+
+    }}
+
+Operation OPERATION():
+    {
+        Value v1 = null, v2 = null;
+        Token tokenOp = null, tokenBop = null, tokenCop = null;
+    }{(
+        v1 = VALUE() (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) (v2 = OPERATION() | v2 = VALUE())
+    ){
+
+        Operation op = null;
+        if (tokenOp != null) {
+            String strOp = tokenOp.toString();
+            switch(strOp) {
+                case "+":
+                    if (v1.getType() == Type.STRING) op = new ConcatOperation();
+                    else op = new SumOperation(); break;
+                case "-": op = new MinusOperation(); break;
+                case "*": op = new TimesOperation(); break;
+                case "/": op = new DivideOperation(); break;
+                case "%": op = new ModOperation(); break;
+            }
+        } else if (tokenCop != null) {
+            String strOp = tokenCop.toString();
+            switch(strOp) {
+                case ">": op = new GreaterOperation(); break;
+                case "<": op = new SmallerOperation(); break;
+                case ">=": op = new GreaterEqualsOperation(); break;
+                case "<=": op = new SmallerEqualsOperation(); break;
+                case "==": op = new EqualsOperation(); break;
+                case "!=": op = new DifferentOperation(); break;
+             }
+        } else if (tokenBop != null) {
+            String strOp = tokenBop.toString();
+            switch(strOp) {
+                case "&&": op = new AndOperation(); break;
+                case "||": op = new OrOperation(); break;
+                case "!": op = new NotOperation(); break;
+            }
+        }
+
+        op.setOperands(v1, v2);
+        return op;
+
+    }}
+
+
+

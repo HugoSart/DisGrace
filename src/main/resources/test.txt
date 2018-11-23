@@ -1,13 +1,10 @@
-var array[2], test: int;
-var variaver[]: bool;
+var array[2 + 5], test = 1: int;
+var variaver = true: bool;
 
-def fun(arg1[], arg2: int; b2: bool): int {
+def fun(arg2: int; b2: bool): int {
 
-    var in: bool;
-    var test: int;
+    var eta = array[1] + 2: int;
 
-    def oi() {
-        var in: int;
-    };
+    return eta;
 
 };

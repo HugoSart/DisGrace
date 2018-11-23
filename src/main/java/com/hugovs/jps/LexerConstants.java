@@ -29,45 +29,47 @@ public interface LexerConstants {
   /** RegularExpression Id. */
   int SEMICOLON = 14;
   /** RegularExpression Id. */
-  int EQ = 15;
+  int ATTR = 15;
   /** RegularExpression Id. */
   int OP = 16;
   /** RegularExpression Id. */
-  int BOP = 17;
+  int COP = 17;
   /** RegularExpression Id. */
-  int DEF = 18;
+  int BOP = 18;
   /** RegularExpression Id. */
-  int VAR = 19;
+  int DEF = 19;
   /** RegularExpression Id. */
-  int TYPE = 20;
+  int VAR = 20;
   /** RegularExpression Id. */
-  int BOOL = 21;
+  int TYPE = 21;
   /** RegularExpression Id. */
-  int CMD_IF = 22;
+  int BOOL = 22;
   /** RegularExpression Id. */
-  int CMD_ELSE = 23;
+  int CMD_IF = 23;
   /** RegularExpression Id. */
-  int CMD_FOR = 24;
+  int CMD_ELSE = 24;
   /** RegularExpression Id. */
-  int CMD_WHILE = 25;
+  int CMD_FOR = 25;
   /** RegularExpression Id. */
-  int CMD_READ = 26;
+  int CMD_WHILE = 26;
   /** RegularExpression Id. */
-  int CMD_WRITE = 27;
+  int CMD_READ = 27;
   /** RegularExpression Id. */
-  int CMD_STOP = 28;
+  int CMD_WRITE = 28;
   /** RegularExpression Id. */
-  int CMD_SKIP = 29;
+  int CMD_STOP = 29;
   /** RegularExpression Id. */
-  int CMD_RETURN = 30;
+  int CMD_SKIP = 30;
   /** RegularExpression Id. */
-  int ID = 31;
+  int CMD_RETURN = 31;
   /** RegularExpression Id. */
-  int STR = 32;
+  int ID = 32;
   /** RegularExpression Id. */
-  int CHAR = 33;
+  int STR = 33;
   /** RegularExpression Id. */
-  int NUM = 34;
+  int CHAR = 34;
+  /** RegularExpression Id. */
+  int NUM = 35;
 
   /** Lexical state. */
   int DEFAULT = 0;
@@ -91,6 +93,7 @@ public interface LexerConstants {
     "\";\"",
     "\"=\"",
     "<OP>",
+    "<COP>",
     "<BOP>",
     "\"def\"",
     "\"var\"",

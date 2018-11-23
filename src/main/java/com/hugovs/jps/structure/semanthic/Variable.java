@@ -7,7 +7,7 @@ public class Variable extends Identifier {
     private Type type = Type.VOID;
     private boolean isArray = false;
     private int length = 1;
-    private boolean isInitialized = false;
+    private Value value = null;
 
     public Type getType() {
         return type;
@@ -18,11 +18,15 @@ public class Variable extends Identifier {
     }
 
     public boolean isInitialized() {
-        return isInitialized;
+        return value != null;
     }
 
-    public void setInitialized(boolean initialized) {
-        isInitialized = initialized;
+    public void setValue(Value value) {
+        this.value = value;
+    }
+
+    public Value getValue() {
+        return value;
     }
 
     public boolean isArray() {
@@ -45,6 +49,6 @@ public class Variable extends Identifier {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "<id=" + getId() + ", type=" + type + ", isInitialized=" + isInitialized + ", isArray=" + isArray + ", length=" + length + ">";
+        return getClass().getSimpleName() + "<id=" + getId() + ", type=" + type + ", isArray=" + isArray + ", length=" + length + ", value=" + value + ">";
     }
 }

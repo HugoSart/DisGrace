@@ -2,7 +2,9 @@ package com.hugovs.jps.structure.semanthic;
 
 import com.hugovs.jps.structure.exception.DuplicatedIdentifierException;
 import com.hugovs.jps.structure.exception.UndeclaredIdentifierException;
+import com.hugovs.jps.structure.semanthic.command.Command;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +13,7 @@ public class Block {
 
     private Block parent = null;
     private Map<String, Identifier> identifiers = new HashMap<>();
+    private List<Command> commands = new ArrayList<>();
 
     public Block() {
 
@@ -62,6 +65,14 @@ public class Block {
 
     public void setParent(Block parent) {
         this.parent = parent;
+    }
+
+    public void addCommand(Command cmd) {
+        commands.add(cmd);
+    }
+
+    public List<Command> getCommands() {
+        return commands;
     }
 
     @Override

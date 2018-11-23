@@ -1,0 +1,6 @@
+package com.hugovs.jps.structure.semanthic.operation.string;
+
+import com.hugovs.jps.structure.semanthic.operation.StringOperation;
+
+public class ConcatOperation extends StringOperation {
+}
