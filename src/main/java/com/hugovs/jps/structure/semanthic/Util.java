@@ -9,4 +9,15 @@ public class Util {
             var.setType(type);
     }
 
+    public static String arrayToString(Object[] obj) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("[");
+        for (int i = 0; i < obj.length; i++) {
+            builder.append(obj[i].toString());
+            if (i < obj.length - 1) builder.append(", ");
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+
 }

@@ -70,6 +70,8 @@ public interface LexerConstants {
   int CHAR = 34;
   /** RegularExpression Id. */
   int NUM = 35;
+  /** RegularExpression Id. */
+  int SPECIAL_CHAR = 36;
 
   /** Lexical state. */
   int DEFAULT = 0;
@@ -112,6 +114,7 @@ public interface LexerConstants {
     "<STR>",
     "<CHAR>",
     "<NUM>",
+    "<SPECIAL_CHAR>",
   };
 
 }

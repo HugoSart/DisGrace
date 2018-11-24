@@ -29,7 +29,7 @@ public class Block {
     }
 
     public void addIdentifier(Identifier id) {
-        if (hasIdentifierInParent(id))
+        if (hasIdentifier(id.getId()))
             throw new DuplicatedIdentifierException(id.getId() + " - in identifier declaration");
         identifiers.put(id.getId(), id);
     }

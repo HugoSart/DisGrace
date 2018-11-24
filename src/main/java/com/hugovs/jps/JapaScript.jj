@@ -77,9 +77,10 @@ TOKEN: {
     | <ID: <CHAR> (<CHAR> | <NUM>)* >
 
     // Primitives
-    | <STR: ["\""] (<CHAR> | <NUM> | " ")* ["\""]>
+    | <STR: ["\""] (<CHAR> | <NUM> | " " | <SPECIAL_CHAR>)* ["\""]>
     | <CHAR: ["a"-"z"] | ["A"-"Z"] | ["_"]>
     | <NUM: (["0"-"9"])+>
+    | <SPECIAL_CHAR: "!" | ["#"-"~"] >
 }
 
 // Regra inicial
@@ -178,7 +179,7 @@ void STATEMENT():
         Subprogram sub = null;
         Command cmd = null;
     }{(
-        (sub = SUB_PROGRAM() | cmd = CMD())  <SEMICOLON> (STATEMENT())?//|   SUB_PROGRAM_CALL()
+        (sub = SUB_PROGRAM() | cmd = CMD()) (STATEMENT())?//|   SUB_PROGRAM_CALL()
     ){
         if (cmd != null)
             block.addCommand(cmd);
@@ -189,9 +190,9 @@ Command CMD():
     {
         Command cmd = null;
     }{(
-        cmd = CMD_RETURN() | cmd = CMD_SUB()
-        //cmd = CMD_IF() | cmd = CMD_FOR() | cmd = CMD_WHILE() | cmd = CMD_READ() | cmd = CMD_WRITE() |
-        //cmd = CMD_STOP() | cmd = CMD_SKIP() | cmd = CMD_RETURN()
+        cmd = CMD_RETURN() | cmd = CMD_WHILE() | cmd = CMD_SKIP() | cmd = CMD_STOP() | cmd = CMD_WRITE() | cmd = CMD_READ() |
+        cmd = CMD_IF()
+        //  | cmd = CMD_SUB()
     ){
         return cmd;
     }}
@@ -202,7 +203,7 @@ Command CMD_RETURN():
         Expression exp = new Expression();
         exp.setType(Type.VOID);
     }{(
-        <CMD_RETURN> (exp = EXPRESSION())?
+        <CMD_RETURN> (exp = EXPRESSION())? <SEMICOLON>
     ){
         cmd.setExpression(exp);
         return cmd;
@@ -212,27 +213,117 @@ Command CMD_SUB():
     {
         SubCommand cmd = new SubCommand();
     }{(
-        <ID> <LPAREN> (EXPRESSION() (<SEMICOLON> EXPRESSION())*)? <RPAREN>
+        <ID> <LPAREN> (EXPRESSION() (<SEMICOLON> EXPRESSION())*)? <RPAREN> <SEMICOLON>
     ){
         return cmd;
     }}
 
-/*Command CMD_IF():
+Command CMD_WHILE():
     {
-        IfCommand cmd = new IfCommand();
+        WhileCommand cmd = new WhileCommand();
+        Expression exp = null;
+        Block block = null;
     }{(
-        <CMD_IF> <LPAREN> EXP() <RPAREN> BLOCK() (CMD_ELSE())?
+        <CMD_WHILE> <LPAREN> exp = EXPRESSION() <RPAREN> block = BLOCK(new ArrayList())
     ){
 
-    }}*/
+        if (exp.getType() != Type.BOOL)
+            throw new IncompatibleTypeException(Type.BOOL, exp.getType());
 
-//Command CMD_ELSE():    {} { <CMD_ELSE> (CMD_IF() | BLOCK()) }
-//Command CMD_FOR():     {} { <CMD_FOR> <LPAREN> VAR() <SEMICOLON> EXP() <SEMICOLON> VAR_LIST() }
-//Command CMD_WHILE():   {} { <CMD_WHILE> <LPAREN> EXP() <RPAREN> }
-//Command CMD_READ():    {} { <CMD_READ> <ID> }
-//Command CMD_WRITE():   {} { <CMD_WRITE> EXP() }
-//Command CMD_STOP():    {} { <CMD_STOP> }
-//Command CMD_SKIP():    {} { <CMD_SKIP> }
+        cmd.setExpression(exp);
+        cmd.setBlock(block);
+        return cmd;
+    }}
+
+Command CMD_IF():
+    {
+        IfCommand cmd = new IfCommand();
+        Command elseCmd = null;
+        Expression exp = null;
+        Block block = null;
+    }{(
+        <CMD_IF> <LPAREN> exp = EXPRESSION() <RPAREN> block = BLOCK(new ArrayList()) (elseCmd = CMD_ELSE())?
+    ){
+
+        if (exp.getType() != Type.BOOL)
+            throw new IncompatibleTypeException(Type.BOOL, exp.getType());
+
+        cmd.setExpression(exp);
+        cmd.setElseCommand((ElseCommand)elseCmd);
+        cmd.setBlock(block);
+
+        return cmd;
+    }}
+
+Command CMD_ELSE():
+    {
+        ElseCommand cmd = new ElseCommand();
+        Command ifCmd = null;
+        Block block = null;
+    }{(
+        <CMD_ELSE> (ifCmd = CMD_IF() | block = BLOCK(new ArrayList()))
+    ){
+        cmd.setBlock(block);
+        cmd.setIfCommand((IfCommand)ifCmd);
+        return cmd;
+    }}
+Command CMD_FOR():
+    {
+        ForCommand forCommand = new ForCommand();
+    }{(
+        <CMD_FOR> <LPAREN> VAR_LIST() <SEMICOLON> EXPRESSION() <SEMICOLON> VAR_LIST()
+    ){
+
+    }}
+Command CMD_READ():
+    {
+        ReadCommand cmd = new ReadCommand();
+        Variable var = null;
+        Token idToken = null;
+    }{(
+        <CMD_READ> idToken = <ID> <SEMICOLON>
+    ){
+
+        String idStr = idToken.toString();
+        Block block = Lexer.stack.peek();
+
+        Identifier id = block.getIdentifier(idStr);
+
+        if (!(id instanceof Variable))
+            throw new IncompatibleTypeException("Expected: Variable. Found: Subprogram");
+        cmd.setVariable((Variable)id);
+        return cmd;
+    }}
+Command CMD_WRITE():
+    {
+        WriteCommand cmd = new WriteCommand();
+        Expression exp = null;
+    }{(
+        <CMD_WRITE> exp = EXPRESSION() <SEMICOLON>
+    ){
+
+        if (exp.getType() != Type.STRING)
+            throw new IncompatibleTypeException(Type.STRING, exp.getType());
+
+        cmd.setExpression(exp);
+        return cmd;
+    }}
+Command CMD_STOP():
+    {
+        StopCommand cmd = new StopCommand();
+    }{(
+        <CMD_STOP> <SEMICOLON>
+    ){
+        return cmd;
+    }}
+Command CMD_SKIP():
+    {
+        SkipCommand cmd = new SkipCommand();
+    }{(
+        <CMD_SKIP> <SEMICOLON>
+    ){
+        return cmd;
+    }}
 
 Expression EXPRESSION():
     {
@@ -278,10 +369,11 @@ List<Variable> VAR_LIST():
         Variable var = new Variable();
         Token idToken;
         Expression arrayExp = null, attrExp = null;
+        List<Value> list = new ArrayList<Value>();
         boolean isArray = false;
     }{(
 
-        idToken = <ID> <LBRACK> arrayExp = EXPRESSION() <RBRACK> (<COMMA> ret = VAR_LIST())? { isArray = true; }
+        idToken = <ID> <LBRACK> arrayExp = EXPRESSION() <RBRACK> (<ATTR> list = ARRAY_INIT())? (<COMMA> ret = VAR_LIST())? { isArray = true; }
     |   idToken = <ID> (<ATTR> attrExp = EXPRESSION())? (<COMMA> ret = VAR_LIST())?
 
     ){
@@ -290,15 +382,28 @@ List<Variable> VAR_LIST():
         if (arrayExp != null && arrayExp.getType() != Type.INT)
             throw new IncompatibleTypeException(Type.INT, arrayExp.getType());
 
-        if (attrExp != null)
+        if (attrExp != null && arrayExp == null)
             var.setValue(attrExp);
+        else if (arrayExp != null) {
+            var.setValues(list);
+        }
 
         var.setId(id);
         var.setArray(isArray);
-        var.setLength(Integer.MAX_VALUE); //TODO: Dar um jeito aqui
+        var.setLength(Integer.MAX_VALUE);
         varList.addAll(ret);
         varList.add(var);
         return varList;
+    }}
+
+List<Value> ARRAY_INIT():
+    {
+        List<Value> list = new ArrayList<Value>();
+        Expression exp = null;
+    }{(
+        <LBRACE> (exp = EXPRESSION() {list.add(exp);} (<COMMA> exp = EXPRESSION() {list.add(exp);})* )? <RBRACE>
+    ){
+        return list;
     }}
 
 // Seção de variáveis separadas por ponto e vírgula
@@ -349,6 +454,7 @@ List<Variable> PARAM_LIST():
         var.setArray(isArray);
         var.setLength(Integer.MAX_VALUE);
         var.setValue(new Value());
+        var.setParameter(true);
         varList.addAll(ret);
         varList.add(var);
         return varList;
@@ -419,37 +525,7 @@ Operation OPERATION():
         v1 = VALUE() (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) (v2 = OPERATION() | v2 = VALUE())
     ){
 
-        Operation op = null;
-        if (tokenOp != null) {
-            String strOp = tokenOp.toString();
-            switch(strOp) {
-                case "+":
-                    if (v1.getType() == Type.STRING) op = new ConcatOperation();
-                    else op = new SumOperation(); break;
-                case "-": op = new MinusOperation(); break;
-                case "*": op = new TimesOperation(); break;
-                case "/": op = new DivideOperation(); break;
-                case "%": op = new ModOperation(); break;
-            }
-        } else if (tokenCop != null) {
-            String strOp = tokenCop.toString();
-            switch(strOp) {
-                case ">": op = new GreaterOperation(); break;
-                case "<": op = new SmallerOperation(); break;
-                case ">=": op = new GreaterEqualsOperation(); break;
-                case "<=": op = new SmallerEqualsOperation(); break;
-                case "==": op = new EqualsOperation(); break;
-                case "!=": op = new DifferentOperation(); break;
-             }
-        } else if (tokenBop != null) {
-            String strOp = tokenBop.toString();
-            switch(strOp) {
-                case "&&": op = new AndOperation(); break;
-                case "||": op = new OrOperation(); break;
-                case "!": op = new NotOperation(); break;
-            }
-        }
-
+        Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
         op.setOperands(v1, v2);
         return op;
 

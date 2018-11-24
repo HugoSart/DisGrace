@@ -5,6 +5,10 @@ public class Value {
     private Type type;
     private Object value = null;
 
+    public Value() {}
+
+    public Value(Type type, Object value) {this.type=type; this.value=value;}
+
     public Type getType() {
         return type;
     }
