@@ -102,6 +102,11 @@ void PROGRAM():
         block = ROOT_BLOCK()
     ){
         program = block;
+
+        Identifier main = block.getIdentifier("main");
+        if (!(main instanceof Subprogram))
+            throw new IncompatibleTypeException();
+
     }}
 
 // Regra de Sub-Programa
@@ -191,8 +196,8 @@ Command CMD():
         Command cmd = null;
     }{(
         cmd = CMD_RETURN() | cmd = CMD_WHILE() | cmd = CMD_SKIP() | cmd = CMD_STOP() | cmd = CMD_WRITE() | cmd = CMD_READ() |
-        cmd = CMD_IF()
-        //  | cmd = CMD_SUB()
+        cmd = CMD_IF() | (cmd = CMD_ATTRIB() <SEMICOLON>) | cmd = CMD_FOR()
+        | cmd = CMD_SUB()
     ){
         return cmd;
     }}
@@ -212,9 +217,31 @@ Command CMD_RETURN():
 Command CMD_SUB():
     {
         SubCommand cmd = new SubCommand();
+        Block block = Lexer.stack.peek();
+        Token idToken = null;
+        List<Expression> arguments = new ArrayList<Expression>();
+        Expression exp = null;
     }{(
-        <ID> <LPAREN> (EXPRESSION() (<SEMICOLON> EXPRESSION())*)? <RPAREN> <SEMICOLON>
+        idToken = <ID> <LPAREN> (exp = EXPRESSION() {arguments.add(exp);} (<COMMA> exp = EXPRESSION() {arguments.add(exp);})* )? <RPAREN> <SEMICOLON>
     ){
+
+        Identifier id = block.getIdentifier(idToken.toString());
+        if (!(id instanceof Subprogram))
+            throw new IncompatibleTypeException("Expected: Subprogram. Found: Variable");
+        Subprogram sub = (Subprogram)id;
+
+        if (sub.getParameters().size() != arguments.size())
+            throw new RuntimeException("Subprogram " + sub.getId() + " has " + sub.getParameters().size() + " parameters. Found: " + arguments.size() + " arguments.");
+        for (int i = 0; i < sub.getParameters().size(); i++) {
+            Variable var = sub.getParameters().get(i);
+            Expression aExp = arguments.get(i);
+            if (var.getType() != aExp.getType())
+                throw new IncompatibleTypeException("Incompatible type in argument " + i + ". Expected: " + var.getType() + ". Found: " + aExp.getType());
+        }
+
+        cmd.setSubprogram(sub);
+        cmd.setArguments(arguments);
+
         return cmd;
     }}
 
@@ -269,19 +296,19 @@ Command CMD_ELSE():
     }}
 Command CMD_FOR():
     {
-        ForCommand forCommand = new ForCommand();
+        ForCommand cmd = new ForCommand();
     }{(
-        <CMD_FOR> <LPAREN> VAR_LIST() <SEMICOLON> EXPRESSION() <SEMICOLON> VAR_LIST()
+        <CMD_FOR> <LPAREN> (CMD_ATTRIB())? (<COMMA> CMD_ATTRIB())* <SEMICOLON> EXPRESSION() <SEMICOLON> (CMD_ATTRIB())? (<COMMA> CMD_ATTRIB())* <RPAREN> BLOCK(new ArrayList())
     ){
-
+        return cmd;
     }}
 Command CMD_READ():
     {
         ReadCommand cmd = new ReadCommand();
-        Variable var = null;
         Token idToken = null;
+        Expression arrayExp = null;
     }{(
-        <CMD_READ> idToken = <ID> <SEMICOLON>
+        <CMD_READ> idToken = <ID> (<LBRACK> arrayExp = EXPRESSION() <RBRACK>)? <SEMICOLON>
     ){
 
         String idStr = idToken.toString();
@@ -291,21 +318,23 @@ Command CMD_READ():
 
         if (!(id instanceof Variable))
             throw new IncompatibleTypeException("Expected: Variable. Found: Subprogram");
-        cmd.setVariable((Variable)id);
+        Variable var = (Variable)id;
+        if (arrayExp != null && !var.isArray())
+            throw new IncompatibleTypeException("Variable " + var.getId() + " is not and array");
+
+        var.setValue(new Value(var.getType(), null));
+        cmd.setVariable(var);
         return cmd;
     }}
 Command CMD_WRITE():
     {
         WriteCommand cmd = new WriteCommand();
+        List<Expression> expList = new ArrayList<Expression>();
         Expression exp = null;
     }{(
-        <CMD_WRITE> exp = EXPRESSION() <SEMICOLON>
+        <CMD_WRITE> (exp = EXPRESSION() {expList.add(exp);}) (<COMMA> exp = EXPRESSION() {expList.add(exp);})* <SEMICOLON>
     ){
-
-        if (exp.getType() != Type.STRING)
-            throw new IncompatibleTypeException(Type.STRING, exp.getType());
-
-        cmd.setExpression(exp);
+        cmd.setExpressions(expList);
         return cmd;
     }}
 Command CMD_STOP():
@@ -322,6 +351,31 @@ Command CMD_SKIP():
     }{(
         <CMD_SKIP> <SEMICOLON>
     ){
+        return cmd;
+    }}
+
+Command CMD_ATTRIB():
+    {
+        AttributionCommand cmd = new AttributionCommand();
+        Block block = Lexer.stack.peek();
+        Expression arrayExp = null, exp = null;
+        Token idToken = null;
+    }{(
+        (idToken = <ID> (<LBRACK> arrayExp = EXPRESSION() <RBRACK>)? | <ID>) (<OP>)? <ATTR> exp = EXPRESSION()
+    ){
+
+        String idStr = idToken.toString();
+        Identifier id = block.getIdentifier(idStr);
+
+        if (!(id instanceof Variable))
+            throw new IncompatibleTypeException("Expected: Variable. Found: Subprogram");
+        Variable var = (Variable)id;
+
+        if (var.getType() != exp.getType())
+            throw new IncompatibleTypeException(var.getType(), exp.getType());
+
+        var.setValue(exp);
+
         return cmd;
     }}
 
@@ -465,8 +519,10 @@ Value VALUE():
         Token idToken = null, numToken = null, boolToken = null, strToken = null;
         Block block = Lexer.stack.peek();
         Value value = new Value();
+        Expression arrayExp = null;
     }{(
-        numToken = <NUM> | boolToken = <BOOL> | strToken = <STR> | idToken = <ID> <LBRACK> numToken = <NUM> <RBRACK> | idToken = <ID>
+        (numToken = <NUM> | boolToken = <BOOL> | strToken = <STR> | idToken = <ID> <LBRACK> arrayExp = EXPRESSION() <RBRACK> | idToken = <ID>) |
+        (<LPAREN> (numToken = <NUM> | boolToken = <BOOL> | strToken = <STR> | idToken = <ID> <LBRACK> numToken = <NUM> <RBRACK> | idToken = <ID>) <RPAREN>)
     ){
 
         Type type = null;
@@ -498,15 +554,13 @@ Value VALUE():
             if (id instanceof Variable) {
                 Variable var = ((Variable) id);
                 type = var.getType();
-                if (numToken != null) {
+                if (arrayExp != null) {
                     if (!var.isArray()) throw new IncompatibleTypeException("Variable " + id + " is not an array");
-                    num = Integer.valueOf(numToken.toString());
-                    if (num >= var.getLength()) throw new InvalidArraySizeException(num);
                 } else if (var.isArray()) {
-                    throw new IncompatibleTypeException("Variable " + id + " is an array");
+                    //throw new IncompatibleTypeException("Variable " + id + " is an array");
                 }
 
-                if (!var.isInitialized())
+                if (!var.isInitialized() && block.hasIdentifier(var.getId()))
                     throw new VariableNotInitializedException(var.getId());
 
             }
@@ -522,7 +576,8 @@ Operation OPERATION():
         Value v1 = null, v2 = null;
         Token tokenOp = null, tokenBop = null, tokenCop = null;
     }{(
-        v1 = VALUE() (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) (v2 = OPERATION() | v2 = VALUE())
+        (v1 = VALUE() (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) (v2 = OPERATION() | v2 = VALUE())) |
+        (<LPAREN> v1 = VALUE() (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) (v2 = OPERATION() | v2 = VALUE()) <RPAREN>)
     ){
 
         Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);

@@ -2,14 +2,16 @@ package com.hugovs.jps.structure.semanthic.command;
 
 import com.hugovs.jps.structure.semanthic.Expression;
 
-public class WriteCommand extends Command {
-    private Expression expression;
+import java.util.List;
 
-    public Expression getExpression() {
-        return expression;
+public class WriteCommand extends Command {
+    private List<Expression> expressions;
+
+    public List<Expression> getExpressions() {
+        return expressions;
     }
 
-    public void setExpression(Expression expression) {
-        this.expression = expression;
+    public void setExpressions(List<Expression> expressions) {
+        this.expressions = expressions;
     }
 }
