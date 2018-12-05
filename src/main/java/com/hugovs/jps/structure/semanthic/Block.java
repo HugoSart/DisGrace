@@ -87,4 +87,30 @@ public class Block {
         }
         return getClass().getSimpleName() + "<identifiers=[" + builder.toString() + "]>";
     }
+
+    public void print(int s) {
+        String spaces = spaces(s);
+        System.out.println(spaces + "Block:");
+        System.out.println(spaces + "  Identifiers: ");
+        for (Identifier value : identifiers.values()) {
+            System.out.println(spaces + "    " + value.toString());
+            if (value instanceof Subprogram)
+                ((Subprogram) value).getBlock().print(s + 6);
+        }
+        System.out.println(spaces + "  Commands:");
+        for (Command command : commands)
+            System.out.println(spaces + "    " + command.toString());
+    }
+
+    public void print() {
+        print(0);
+    }
+
+    private String spaces(int s) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < s; i++)
+            builder.append(" ");
+        return builder.toString();
+    }
+
 }

@@ -29,10 +29,10 @@ public class Lexer {
     public static void main(String[] args) {
         try {
             new Lexer(new java.io.FileInputStream(args[0])).S();
-            System.out.println("Syntax is okay");
+                   System.out.println("Syntax is okay");
         } catch (Throwable e) {
-            // Catching Throwable is ugly but JavaCC throws Error objects!
-            System.out.println("Syntax check failed: " + e.getMessage());
+               // Catching Throwable is ugly but JavaCC throws Error objects!
+             System.out.println("Syntax check failed: " + e.getMessage());
         }
     }
 }
@@ -105,7 +105,9 @@ void PROGRAM():
 
         Identifier main = block.getIdentifier("main");
         if (!(main instanceof Subprogram))
-            throw new IncompatibleTypeException();
+            throw new IncompatibleTypeException("Main not found");
+
+        block.print();
 
     }}
 
@@ -150,10 +152,6 @@ Block ROOT_BLOCK():
     }{(
         (varList = VAR_SECTION() { block.addAll(varList); })? (STATEMENT())?
     ){
-
-        System.out.println("Identifiers found in block " + Lexer.blockCount + ": ");
-        for (Identifier i : block.getIdentifiers().values())
-            System.out.println("  " + i.toString());
 
         Lexer.stack.pop();
         return block;
@@ -576,8 +574,7 @@ Operation OPERATION():
         Value v1 = null, v2 = null;
         Token tokenOp = null, tokenBop = null, tokenCop = null;
     }{(
-        (v1 = VALUE() (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) (v2 = OPERATION() | v2 = VALUE())) |
-        (<LPAREN> v1 = VALUE() (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) (v2 = OPERATION() | v2 = VALUE()) <RPAREN>)
+        ((v1 = VALUE() | <LPAREN> v1 = OPERATION() <RPAREN>) (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) (v2 = OPERATION() | v2 = VALUE()))
     ){
 
         Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
