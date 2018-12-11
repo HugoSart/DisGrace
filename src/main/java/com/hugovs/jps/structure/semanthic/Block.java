@@ -5,6 +5,7 @@ import com.hugovs.jps.structure.llvm.LlvmRepresentable;
 import com.hugovs.jps.structure.exception.DuplicatedIdentifierException;
 import com.hugovs.jps.structure.exception.UndeclaredIdentifierException;
 import com.hugovs.jps.structure.semanthic.command.Command;
+import com.hugovs.jps.structure.semanthic.command.SubCommand;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,7 +47,7 @@ public class Block implements LlvmRepresentable {
             return i;
         else if (parent != null)
             return parent.getIdentifier(id);
-        throw new UndeclaredIdentifierException();
+        throw new UndeclaredIdentifierException(id);
     }
 
     public Map<String, Identifier> getIdentifiers() {
@@ -119,9 +120,16 @@ public class Block implements LlvmRepresentable {
         return builder.toString();
     }
 
+    public boolean isInsideLoop() {
+        if (!inLabel.value.isEmpty() || !outLabel.value.isEmpty()) return true;
+        if (parent != null) return parent.isInsideLoop();
+        return false;
+    }
+
     @Override
     public LlvmIR toIR(int n) {
 
+        String s = Util.spaces(n);
         String ir = "";
 
         // Global
@@ -132,8 +140,11 @@ public class Block implements LlvmRepresentable {
 
         for (Identifier id : identifiers.values())
             if (id instanceof Subprogram) ir += id.toIR(n) + "\n";
-        for (Command command : commands)
-            ir += command.toIR(n) + "\n";
+        for (Command command : commands) {
+            LlvmIR rir = command.toIR(n);
+            ir += rir + "\n";
+            if (command instanceof SubCommand) ir += s + rir.result + "\n";
+        }
         return new LlvmIR(ir, "");
     }
 

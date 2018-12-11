@@ -69,11 +69,12 @@ public class ForCommand extends Command {
         ir += s + "br i1 " + condIr.result + ", label %forin" + forCount + ", " + "%forout" + forCount + "\n";
         ir += s + "forin" + forCount + ":\n";
         ir += block.toIR(n + 4);
-        ir += s + "br label %for" + forCount + "\n";
 
         for (AttributionCommand secondAttributionCommand : secondAttributionCommands)
             ir += secondAttributionCommand.toIR(n + 4);
 
+        ir += "\n";
+        ir += s + "br label %for" + forCount + "\n";
         ir += "\n";
         ir += s + "forout" + forCount + ":\n";
 

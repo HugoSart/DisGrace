@@ -9,7 +9,7 @@ public class IncompatibleTypeException extends GraceException {
     }
 
     public IncompatibleTypeException(Type t1, Type t2) {
-        super("Incompatible type of expression in return. Expected: "
+        super("Incompatible type of expressionn. Expected: "
                 + t1.name() + ". Found: " + t2.name());
     }
 

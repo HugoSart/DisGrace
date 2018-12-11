@@ -31,7 +31,7 @@ public class Variable extends Identifier implements LlvmRepresentable {
     }
 
     public boolean isInitialized() {
-        return varValue != null;
+        return varValue != null || values.size() != 0;
     }
 
     public void setVarValue(Value value) {
@@ -88,6 +88,8 @@ public class Variable extends Identifier implements LlvmRepresentable {
 
     @Override
     public LlvmIR toIR(int ident) {
-        return new LlvmIR("", "%" + getId());
+        if (isArray) {
+            return null;
+        } else return new LlvmIR("", "%" + getId());
     }
 }

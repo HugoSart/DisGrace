@@ -9,10 +9,6 @@ import java.io.*;
 import com.hugovs.jps.structure.semanthic.*;
 import com.hugovs.jps.structure.semanthic.command.*;
 import com.hugovs.jps.structure.semanthic.operation.*;
-import com.hugovs.jps.structure.semanthic.operation.bool.*;
-import com.hugovs.jps.structure.semanthic.operation.compare.*;
-import com.hugovs.jps.structure.semanthic.operation.integer.*;
-import com.hugovs.jps.structure.semanthic.operation.string.*;
 import com.hugovs.jps.structure.exception.*;
 
 public class Lexer implements LexerConstants {
@@ -20,7 +16,7 @@ public class Lexer implements LexerConstants {
     public static Block program = new Block();
     public static int blockCount = 0;
     public static Stack<Block> stack = new Stack<Block>();
-    public static int lineCount = 1;
+    public static int lineCount = 0;
 
     public static void main(String[] args) {
         try {
@@ -205,11 +201,14 @@ block.addCommand(cmd);
     } else if (jj_2_21(8)) {
       cmd = CMD_SUB();
       jj_consume_token(SEMICOLON);
+    } else if (jj_2_22(8)) {
+      jj_consume_token(SEMICOLON);
     } else {
       jj_consume_token(-1);
       throw new ParseException();
     }
-{if ("" != null) return cmd;}
+cmd.block = Lexer.stack.peek();
+        {if ("" != null) return cmd;}
     throw new Error("Missing return statement in function");
   }
 
@@ -217,7 +216,7 @@ block.addCommand(cmd);
         Expression exp = new Expression();
         exp.setType(Type.VOID);
     jj_consume_token(CMD_RETURN);
-    if (jj_2_22(8)) {
+    if (jj_2_23(8)) {
       exp = EXPRESSION();
     } else {
       ;
@@ -235,12 +234,12 @@ cmd.setExpression(exp);
         Expression exp = null;
     idToken = jj_consume_token(ID);
     jj_consume_token(LPAREN);
-    if (jj_2_24(8)) {
+    if (jj_2_25(8)) {
       exp = EXPRESSION();
 arguments.add(exp);
       label_1:
       while (true) {
-        if (jj_2_23(8)) {
+        if (jj_2_24(8)) {
           ;
         } else {
           break label_1;
@@ -300,7 +299,7 @@ if (exp.getType() != Type.BOOL)
     exp = EXPRESSION();
     jj_consume_token(RPAREN);
     block = BLOCK(new ArrayList());
-    if (jj_2_25(8)) {
+    if (jj_2_26(8)) {
       elseCmd = CMD_ELSE();
     } else {
       ;
@@ -320,9 +319,9 @@ if (exp.getType() != Type.BOOL)
         Command ifCmd = null;
         Block block = null;
     jj_consume_token(CMD_ELSE);
-    if (jj_2_26(8)) {
+    if (jj_2_27(8)) {
       ifCmd = CMD_IF();
-    } else if (jj_2_27(8)) {
+    } else if (jj_2_28(8)) {
       block = BLOCK(new ArrayList());
     } else {
       jj_consume_token(-1);
@@ -341,19 +340,19 @@ cmd.setBlock(block);
         List<AttributionCommand> first = new ArrayList<AttributionCommand>(), second = new ArrayList<AttributionCommand>();
     jj_consume_token(CMD_FOR);
     jj_consume_token(LPAREN);
-    if (jj_2_29(8)) {
+    if (jj_2_30(8)) {
       acmd = CMD_ATTRIB();
 first.add((AttributionCommand)acmd);
       label_2:
       while (true) {
-        if (jj_2_28(8)) {
+        if (jj_2_29(8)) {
           ;
         } else {
           break label_2;
         }
         jj_consume_token(COMMA);
         CMD_ATTRIB();
-second.add((AttributionCommand)acmd);
+first.add((AttributionCommand)acmd);
       }
     } else {
       ;
@@ -361,20 +360,22 @@ second.add((AttributionCommand)acmd);
     jj_consume_token(SEMICOLON);
     cond = EXPRESSION();
     jj_consume_token(SEMICOLON);
-    if (jj_2_30(8)) {
-      CMD_ATTRIB();
+    if (jj_2_32(8)) {
+      acmd = CMD_ATTRIB();
+second.add((AttributionCommand)acmd);
+      label_3:
+      while (true) {
+        if (jj_2_31(8)) {
+          ;
+        } else {
+          break label_3;
+        }
+        jj_consume_token(COMMA);
+        acmd = CMD_ATTRIB();
+second.add((AttributionCommand)acmd);
+      }
     } else {
       ;
-    }
-    label_3:
-    while (true) {
-      if (jj_2_31(8)) {
-        ;
-      } else {
-        break label_3;
-      }
-      jj_consume_token(COMMA);
-      CMD_ATTRIB();
     }
     jj_consume_token(RPAREN);
     block = BLOCK(new ArrayList());
@@ -394,7 +395,7 @@ if (cond.getType() != Type.BOOL)
         Expression arrayExp = null;
     jj_consume_token(CMD_READ);
     idToken = jj_consume_token(ID);
-    if (jj_2_32(8)) {
+    if (jj_2_33(8)) {
       jj_consume_token(LBRACK);
       arrayExp = EXPRESSION();
       jj_consume_token(RBRACK);
@@ -427,7 +428,7 @@ String idStr = idToken.toString();
 expList.add(exp);
     label_4:
     while (true) {
-      if (jj_2_33(8)) {
+      if (jj_2_34(8)) {
         ;
       } else {
         break label_4;
@@ -463,22 +464,22 @@ cmd.label = Lexer.stack.peek().inLabel;
         Expression arrayExp = null, exp = null;
         Token idToken = null;
         Token opToken = null;
-    if (jj_2_35(8)) {
+    if (jj_2_36(8)) {
       idToken = jj_consume_token(ID);
-      if (jj_2_34(8)) {
+      if (jj_2_35(8)) {
         jj_consume_token(LBRACK);
         arrayExp = EXPRESSION();
         jj_consume_token(RBRACK);
       } else {
         ;
       }
-    } else if (jj_2_36(8)) {
+    } else if (jj_2_37(8)) {
       jj_consume_token(ID);
     } else {
       jj_consume_token(-1);
       throw new ParseException();
     }
-    if (jj_2_37(8)) {
+    if (jj_2_38(8)) {
       opToken = jj_consume_token(OP);
     } else {
       ;
@@ -512,6 +513,8 @@ String idStr = idToken.toString();
             {if (true) throw new VariableNotInitializedException(var.getId());}
         }
 
+
+        cmd.position = arrayExp;
         var.setVarValue(exp);
         cmd.setExpression(exp);
         cmd.setVariable(var);
@@ -523,9 +526,9 @@ String idStr = idToken.toString();
   static final public Expression EXPRESSION() throws ParseException {Expression exp = new Expression(), first, second;
         Value v = null;
         Operation op = null;
-    if (jj_2_38(8)) {
+    if (jj_2_39(8)) {
       op = OPERATION();
-    } else if (jj_2_39(8)) {
+    } else if (jj_2_40(8)) {
       v = VALUE();
     } else {
       jj_consume_token(-1);
@@ -567,33 +570,33 @@ Type type = Type.valueOf(typeToken.toString().toUpperCase());
         List<Value> list = new ArrayList<Value>();
         boolean isArray = false;
         AttributionCommand cmd = new AttributionCommand();
-    if (jj_2_44(8)) {
+    if (jj_2_45(8)) {
       idToken = jj_consume_token(ID);
       jj_consume_token(LBRACK);
       arrayExp = EXPRESSION();
       jj_consume_token(RBRACK);
-      if (jj_2_40(8)) {
+      if (jj_2_41(8)) {
         jj_consume_token(ATTR);
         list = ARRAY_INIT();
       } else {
         ;
       }
-      if (jj_2_41(8)) {
+      if (jj_2_42(8)) {
         jj_consume_token(COMMA);
         ret = VAR_LIST();
       } else {
         ;
       }
 isArray = true;
-    } else if (jj_2_45(8)) {
+    } else if (jj_2_46(8)) {
       idToken = jj_consume_token(ID);
-      if (jj_2_42(8)) {
+      if (jj_2_43(8)) {
         jj_consume_token(ATTR);
         attrExp = EXPRESSION();
       } else {
         ;
       }
-      if (jj_2_43(8)) {
+      if (jj_2_44(8)) {
         jj_consume_token(COMMA);
         ret = VAR_LIST();
       } else {
@@ -629,12 +632,12 @@ String id = idToken.toString();
   static final public List<Value> ARRAY_INIT() throws ParseException {List<Value> list = new ArrayList<Value>();
         Expression exp = null;
     jj_consume_token(LBRACE);
-    if (jj_2_47(8)) {
+    if (jj_2_48(8)) {
       exp = EXPRESSION();
 list.add(exp);
       label_5:
       while (true) {
-        if (jj_2_46(8)) {
+        if (jj_2_47(8)) {
           ;
         } else {
           break label_5;
@@ -655,7 +658,7 @@ list.add(exp);
   static final public List<Variable> VAR_SECTION() throws ParseException {List<Variable> varList = null, ret = null;
     varList = VAR();
     jj_consume_token(SEMICOLON);
-    if (jj_2_48(8)) {
+    if (jj_2_49(8)) {
       ret = VAR_SECTION();
     } else {
       ;
@@ -672,7 +675,7 @@ if (ret != null)
     varList = PARAM_LIST();
     jj_consume_token(COLON);
     typeToken = jj_consume_token(TYPE);
-    if (jj_2_49(8)) {
+    if (jj_2_50(8)) {
       jj_consume_token(SEMICOLON);
       v2 = PARAMETERS();
     } else {
@@ -692,20 +695,20 @@ Type type = Type.valueOf(typeToken.toString().toUpperCase());
         Variable var = new Variable();
         Token idToken;
         boolean isArray = false;
-    if (jj_2_52(8)) {
+    if (jj_2_53(8)) {
       idToken = jj_consume_token(ID);
       jj_consume_token(LBRACK);
       jj_consume_token(RBRACK);
-      if (jj_2_50(8)) {
+      if (jj_2_51(8)) {
         jj_consume_token(COMMA);
         ret = PARAM_LIST();
       } else {
         ;
       }
 isArray = true;
-    } else if (jj_2_53(8)) {
+    } else if (jj_2_54(8)) {
       idToken = jj_consume_token(ID);
-      if (jj_2_51(8)) {
+      if (jj_2_52(8)) {
         jj_consume_token(COMMA);
         ret = PARAM_LIST();
       } else {
@@ -741,42 +744,42 @@ String id = idToken.toString();
         Expression arrayExp = null;
         Expression ter = null;
         Command sub = null;
-    if (jj_2_66(8)) {
-      if (jj_2_54(8)) {
+    if (jj_2_67(8)) {
+      if (jj_2_55(8)) {
         numToken = jj_consume_token(NUM);
-      } else if (jj_2_55(8)) {
-        boolToken = jj_consume_token(BOOL);
       } else if (jj_2_56(8)) {
-        strToken = jj_consume_token(STR);
+        boolToken = jj_consume_token(BOOL);
       } else if (jj_2_57(8)) {
+        strToken = jj_consume_token(STR);
+      } else if (jj_2_58(8)) {
         idToken = jj_consume_token(ID);
         jj_consume_token(LBRACK);
         arrayExp = EXPRESSION();
         jj_consume_token(RBRACK);
-      } else if (jj_2_58(8)) {
-        sub = CMD_SUB();
       } else if (jj_2_59(8)) {
+        sub = CMD_SUB();
+      } else if (jj_2_60(8)) {
         idToken = jj_consume_token(ID);
       } else {
         jj_consume_token(-1);
         throw new ParseException();
       }
-    } else if (jj_2_67(8)) {
+    } else if (jj_2_68(8)) {
       jj_consume_token(LPAREN);
-      if (jj_2_60(8)) {
+      if (jj_2_61(8)) {
         numToken = jj_consume_token(NUM);
-      } else if (jj_2_61(8)) {
-        boolToken = jj_consume_token(BOOL);
       } else if (jj_2_62(8)) {
-        strToken = jj_consume_token(STR);
+        boolToken = jj_consume_token(BOOL);
       } else if (jj_2_63(8)) {
+        strToken = jj_consume_token(STR);
+      } else if (jj_2_64(8)) {
         idToken = jj_consume_token(ID);
         jj_consume_token(LBRACK);
         numToken = jj_consume_token(NUM);
         jj_consume_token(RBRACK);
-      } else if (jj_2_64(8)) {
-        sub = CMD_SUB();
       } else if (jj_2_65(8)) {
+        sub = CMD_SUB();
+      } else if (jj_2_66(8)) {
         idToken = jj_consume_token(ID);
       } else {
         jj_consume_token(-1);
@@ -821,9 +824,10 @@ Type type = null;
                 if (arrayExp != null) {
                     if (!var.isArray()) {if (true) throw new IncompatibleTypeException("Variable " + id + " is not an array");}
                     if (arrayExp.getType() != Type.INT) {if (true) throw new IncompatibleTypeException(Type.INT, arrayExp.getType());}
+                    value.position = arrayExp;
                     value.setValue(var);
-                } else if (var.isArray()) {
-                    //throw new IncompatibleTypeException("Variable " + id + " is an array");
+                } else {
+                    value.setValue(var);
                 }
 
                 if (!var.isInitialized() && block.hasIdentifier(var.getId()))
@@ -845,10 +849,10 @@ Type type = null;
 
   static final public Operation OPERATION() throws ParseException {Value v1 = null, v2 = null;
         Token tokenOp = null, tokenBop = null, tokenCop = null;
-    if (jj_2_82(8)) {
-      if (jj_2_68(8)) {
+    if (jj_2_83(8)) {
+      if (jj_2_69(8)) {
         v1 = VALUE();
-      } else if (jj_2_69(8)) {
+      } else if (jj_2_70(8)) {
         jj_consume_token(LPAREN);
         v1 = OPERATION();
         jj_consume_token(RPAREN);
@@ -856,28 +860,28 @@ Type type = null;
         jj_consume_token(-1);
         throw new ParseException();
       }
-      if (jj_2_70(8)) {
+      if (jj_2_71(8)) {
         tokenOp = jj_consume_token(OP);
-      } else if (jj_2_71(8)) {
-        tokenBop = jj_consume_token(BOP);
       } else if (jj_2_72(8)) {
+        tokenBop = jj_consume_token(BOP);
+      } else if (jj_2_73(8)) {
         tokenCop = jj_consume_token(COP);
       } else {
         jj_consume_token(-1);
         throw new ParseException();
       }
-      if (jj_2_73(8)) {
+      if (jj_2_74(8)) {
         v2 = OPERATION();
-      } else if (jj_2_74(8)) {
+      } else if (jj_2_75(8)) {
         v2 = VALUE();
       } else {
         jj_consume_token(-1);
         throw new ParseException();
       }
-    } else if (jj_2_83(8)) {
-      if (jj_2_75(8)) {
+    } else if (jj_2_84(8)) {
+      if (jj_2_76(8)) {
         v1 = VALUE();
-      } else if (jj_2_76(8)) {
+      } else if (jj_2_77(8)) {
         jj_consume_token(LPAREN);
         v1 = OPERATION();
         jj_consume_token(RPAREN);
@@ -885,20 +889,20 @@ Type type = null;
         jj_consume_token(-1);
         throw new ParseException();
       }
-      if (jj_2_77(8)) {
+      if (jj_2_78(8)) {
         tokenOp = jj_consume_token(OP);
-      } else if (jj_2_78(8)) {
-        tokenBop = jj_consume_token(BOP);
       } else if (jj_2_79(8)) {
+        tokenBop = jj_consume_token(BOP);
+      } else if (jj_2_80(8)) {
         tokenCop = jj_consume_token(COP);
       } else {
         jj_consume_token(-1);
         throw new ParseException();
       }
       jj_consume_token(LPAREN);
-      if (jj_2_80(8)) {
+      if (jj_2_81(8)) {
         v2 = OPERATION();
-      } else if (jj_2_81(8)) {
+      } else if (jj_2_82(8)) {
         v2 = VALUE();
       } else {
         jj_consume_token(-1);
@@ -1579,6 +1583,21 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     finally { jj_save(82, xla); }
   }
 
+  static private boolean jj_2_84(int xla)
+ {
+    jj_la = xla; jj_lastpos = jj_scanpos = token;
+    try { return !jj_3_84(); }
+    catch(LookaheadSuccess ls) { return true; }
+    finally { jj_save(83, xla); }
+  }
+
+  static private boolean jj_3_47()
+ {
+    if (jj_scan_token(COMMA)) return true;
+    if (jj_3R_21()) return true;
+    return false;
+  }
+
   static private boolean jj_3R_14()
  {
     if (jj_scan_token(CMD_STOP)) return true;
@@ -1586,44 +1605,66 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_46()
+  static private boolean jj_3_54()
  {
-    if (jj_scan_token(COMMA)) return true;
-    if (jj_3R_21()) return true;
+    if (jj_scan_token(ID)) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_52()) jj_scanpos = xsp;
     return false;
   }
 
-  static private boolean jj_3_32()
+  static private boolean jj_3_33()
  {
     if (jj_scan_token(LBRACK)) return true;
     if (jj_3R_21()) return true;
     if (jj_scan_token(RBRACK)) return true;
-    return false;
-  }
-
-  static private boolean jj_3_25()
- {
-    if (jj_3R_22()) return true;
     return false;
   }
 
   static private boolean jj_3_53()
  {
     if (jj_scan_token(ID)) return true;
+    if (jj_scan_token(LBRACK)) return true;
+    if (jj_scan_token(RBRACK)) return true;
     Token xsp;
     xsp = jj_scanpos;
     if (jj_3_51()) jj_scanpos = xsp;
     return false;
   }
 
-  static private boolean jj_3_52()
+  static private boolean jj_3_26()
  {
-    if (jj_scan_token(ID)) return true;
-    if (jj_scan_token(LBRACK)) return true;
-    if (jj_scan_token(RBRACK)) return true;
+    if (jj_3R_22()) return true;
+    return false;
+  }
+
+  static private boolean jj_3_80()
+ {
+    if (jj_scan_token(COP)) return true;
+    return false;
+  }
+
+  static private boolean jj_3_73()
+ {
+    if (jj_scan_token(COP)) return true;
+    return false;
+  }
+
+  static private boolean jj_3_49()
+ {
+    if (jj_3R_7()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_28()
+ {
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_50()) jj_scanpos = xsp;
+    if (jj_3_53()) {
+    jj_scanpos = xsp;
+    if (jj_3_54()) return true;
+    }
     return false;
   }
 
@@ -1639,29 +1680,6 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_79()
- {
-    if (jj_scan_token(COP)) return true;
-    return false;
-  }
-
-  static private boolean jj_3_48()
- {
-    if (jj_3R_7()) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_28()
- {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_52()) {
-    jj_scanpos = xsp;
-    if (jj_3_53()) return true;
-    }
-    return false;
-  }
-
   static private boolean jj_3R_15()
  {
     if (jj_scan_token(CMD_WRITE)) return true;
@@ -1669,26 +1687,20 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     Token xsp;
     while (true) {
       xsp = jj_scanpos;
-      if (jj_3_33()) { jj_scanpos = xsp; break; }
+      if (jj_3_34()) { jj_scanpos = xsp; break; }
     }
     if (jj_scan_token(SEMICOLON)) return true;
     return false;
   }
 
-  static private boolean jj_3_72()
- {
-    if (jj_scan_token(COP)) return true;
-    return false;
-  }
-
-  static private boolean jj_3_40()
+  static private boolean jj_3_41()
  {
     if (jj_scan_token(ATTR)) return true;
     if (jj_3R_26()) return true;
     return false;
   }
 
-  static private boolean jj_3_65()
+  static private boolean jj_3_66()
  {
     if (jj_scan_token(ID)) return true;
     return false;
@@ -1701,47 +1713,47 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     if (jj_scan_token(TYPE)) return true;
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_49()) jj_scanpos = xsp;
+    if (jj_3_50()) jj_scanpos = xsp;
     return false;
   }
 
-  static private boolean jj_3_78()
+  static private boolean jj_3_79()
  {
     if (jj_scan_token(BOP)) return true;
     return false;
   }
 
-  static private boolean jj_3_59()
+  static private boolean jj_3_72()
+ {
+    if (jj_scan_token(BOP)) return true;
+    return false;
+  }
+
+  static private boolean jj_3_60()
  {
     if (jj_scan_token(ID)) return true;
     return false;
   }
 
-  static private boolean jj_3_71()
- {
-    if (jj_scan_token(BOP)) return true;
-    return false;
-  }
-
-  static private boolean jj_3_29()
- {
-    if (jj_3R_18()) return true;
-    Token xsp;
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_28()) { jj_scanpos = xsp; break; }
-    }
-    return false;
-  }
-
-  static private boolean jj_3_43()
+  static private boolean jj_3_44()
  {
     if (jj_scan_token(COMMA)) return true;
     if (jj_3R_27()) return true;
     return false;
   }
 
-  static private boolean jj_3_27()
+  static private boolean jj_3_30()
+ {
+    if (jj_3R_18()) return true;
+    Token xsp;
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_29()) { jj_scanpos = xsp; break; }
+    }
+    return false;
+  }
+
+  static private boolean jj_3_28()
  {
     if (jj_3R_23()) return true;
     return false;
@@ -1753,26 +1765,41 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     if (jj_scan_token(ID)) return true;
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_32()) jj_scanpos = xsp;
+    if (jj_3_33()) jj_scanpos = xsp;
     if (jj_scan_token(SEMICOLON)) return true;
     return false;
   }
 
-  static private boolean jj_3_31()
- {
-    if (jj_scan_token(COMMA)) return true;
-    if (jj_3R_18()) return true;
-    return false;
-  }
-
-  static private boolean jj_3_47()
+  static private boolean jj_3_48()
  {
     if (jj_3R_21()) return true;
     Token xsp;
     while (true) {
       xsp = jj_scanpos;
-      if (jj_3_46()) { jj_scanpos = xsp; break; }
+      if (jj_3_47()) { jj_scanpos = xsp; break; }
     }
+    return false;
+  }
+
+  static private boolean jj_3R_7()
+ {
+    if (jj_3R_29()) return true;
+    if (jj_scan_token(SEMICOLON)) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_49()) jj_scanpos = xsp;
+    return false;
+  }
+
+  static private boolean jj_3_65()
+ {
+    if (jj_3R_20()) return true;
+    return false;
+  }
+
+  static private boolean jj_3_78()
+ {
+    if (jj_scan_token(OP)) return true;
     return false;
   }
 
@@ -1791,43 +1818,15 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3R_7()
- {
-    if (jj_3R_29()) return true;
-    if (jj_scan_token(SEMICOLON)) return true;
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_48()) jj_scanpos = xsp;
-    return false;
-  }
-
-  static private boolean jj_3_64()
- {
-    if (jj_3R_20()) return true;
-    return false;
-  }
-
-  static private boolean jj_3_77()
+  static private boolean jj_3_71()
  {
     if (jj_scan_token(OP)) return true;
     return false;
   }
 
-  static private boolean jj_3_58()
+  static private boolean jj_3_59()
  {
     if (jj_3R_20()) return true;
-    return false;
-  }
-
-  static private boolean jj_3_70()
- {
-    if (jj_scan_token(OP)) return true;
-    return false;
-  }
-
-  static private boolean jj_3_30()
- {
-    if (jj_3R_18()) return true;
     return false;
   }
 
@@ -1836,12 +1835,23 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     if (jj_scan_token(LBRACE)) return true;
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_47()) jj_scanpos = xsp;
+    if (jj_3_48()) jj_scanpos = xsp;
     if (jj_scan_token(RBRACE)) return true;
     return false;
   }
 
-  static private boolean jj_3_26()
+  static private boolean jj_3_32()
+ {
+    if (jj_3R_18()) return true;
+    Token xsp;
+    while (true) {
+      xsp = jj_scanpos;
+      if (jj_3_31()) { jj_scanpos = xsp; break; }
+    }
+    return false;
+  }
+
+  static private boolean jj_3_27()
  {
     if (jj_3R_17()) return true;
     return false;
@@ -1853,16 +1863,12 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     if (jj_scan_token(LPAREN)) return true;
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_29()) jj_scanpos = xsp;
+    if (jj_3_30()) jj_scanpos = xsp;
     if (jj_scan_token(SEMICOLON)) return true;
     if (jj_3R_21()) return true;
     if (jj_scan_token(SEMICOLON)) return true;
     xsp = jj_scanpos;
-    if (jj_3_30()) jj_scanpos = xsp;
-    while (true) {
-      xsp = jj_scanpos;
-      if (jj_3_31()) { jj_scanpos = xsp; break; }
-    }
+    if (jj_3_32()) jj_scanpos = xsp;
     if (jj_scan_token(RPAREN)) return true;
     if (jj_3R_23()) return true;
     return false;
@@ -1874,16 +1880,16 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_23()
+  static private boolean jj_3_43()
  {
-    if (jj_scan_token(COMMA)) return true;
+    if (jj_scan_token(ATTR)) return true;
     if (jj_3R_21()) return true;
     return false;
   }
 
-  static private boolean jj_3_42()
+  static private boolean jj_3_24()
  {
-    if (jj_scan_token(ATTR)) return true;
+    if (jj_scan_token(COMMA)) return true;
     if (jj_3R_21()) return true;
     return false;
   }
@@ -1893,10 +1899,43 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     if (jj_scan_token(CMD_ELSE)) return true;
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_26()) {
+    if (jj_3_27()) {
     jj_scanpos = xsp;
-    if (jj_3_27()) return true;
+    if (jj_3_28()) return true;
     }
+    return false;
+  }
+
+  static private boolean jj_3_46()
+ {
+    if (jj_scan_token(ID)) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_43()) jj_scanpos = xsp;
+    xsp = jj_scanpos;
+    if (jj_3_44()) jj_scanpos = xsp;
+    return false;
+  }
+
+  static private boolean jj_3_45()
+ {
+    if (jj_scan_token(ID)) return true;
+    if (jj_scan_token(LBRACK)) return true;
+    if (jj_3R_21()) return true;
+    if (jj_scan_token(RBRACK)) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_41()) jj_scanpos = xsp;
+    xsp = jj_scanpos;
+    if (jj_3_42()) jj_scanpos = xsp;
+    return false;
+  }
+
+  static private boolean jj_3_77()
+ {
+    if (jj_scan_token(LPAREN)) return true;
+    if (jj_3R_24()) return true;
+    if (jj_scan_token(RPAREN)) return true;
     return false;
   }
 
@@ -1906,40 +1945,7 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_45()
- {
-    if (jj_scan_token(ID)) return true;
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_42()) jj_scanpos = xsp;
-    xsp = jj_scanpos;
-    if (jj_3_43()) jj_scanpos = xsp;
-    return false;
-  }
-
-  static private boolean jj_3_44()
- {
-    if (jj_scan_token(ID)) return true;
-    if (jj_scan_token(LBRACK)) return true;
-    if (jj_3R_21()) return true;
-    if (jj_scan_token(RBRACK)) return true;
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_40()) jj_scanpos = xsp;
-    xsp = jj_scanpos;
-    if (jj_3_41()) jj_scanpos = xsp;
-    return false;
-  }
-
-  static private boolean jj_3_76()
- {
-    if (jj_scan_token(LPAREN)) return true;
-    if (jj_3R_24()) return true;
-    if (jj_scan_token(RPAREN)) return true;
-    return false;
-  }
-
-  static private boolean jj_3_69()
+  static private boolean jj_3_70()
  {
     if (jj_scan_token(LPAREN)) return true;
     if (jj_3R_24()) return true;
@@ -1951,9 +1957,9 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
  {
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_44()) {
+    if (jj_3_45()) {
     jj_scanpos = xsp;
-    if (jj_3_45()) return true;
+    if (jj_3_46()) return true;
     }
     return false;
   }
@@ -1967,7 +1973,16 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     if (jj_3R_23()) return true;
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_25()) jj_scanpos = xsp;
+    if (jj_3_26()) jj_scanpos = xsp;
+    return false;
+  }
+
+  static private boolean jj_3_64()
+ {
+    if (jj_scan_token(ID)) return true;
+    if (jj_scan_token(LBRACK)) return true;
+    if (jj_scan_token(NUM)) return true;
+    if (jj_scan_token(RBRACK)) return true;
     return false;
   }
 
@@ -1977,24 +1992,71 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_63()
+  static private boolean jj_3_76()
  {
-    if (jj_scan_token(ID)) return true;
-    if (jj_scan_token(LBRACK)) return true;
-    if (jj_scan_token(NUM)) return true;
-    if (jj_scan_token(RBRACK)) return true;
+    if (jj_3R_25()) return true;
     return false;
   }
 
-  static private boolean jj_3_37()
+  static private boolean jj_3_69()
+ {
+    if (jj_3R_25()) return true;
+    return false;
+  }
+
+  static private boolean jj_3_84()
+ {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_76()) {
+    jj_scanpos = xsp;
+    if (jj_3_77()) return true;
+    }
+    xsp = jj_scanpos;
+    if (jj_3_78()) {
+    jj_scanpos = xsp;
+    if (jj_3_79()) {
+    jj_scanpos = xsp;
+    if (jj_3_80()) return true;
+    }
+    }
+    if (jj_scan_token(LPAREN)) return true;
+    xsp = jj_scanpos;
+    if (jj_3_81()) {
+    jj_scanpos = xsp;
+    if (jj_3_82()) return true;
+    }
+    if (jj_scan_token(RPAREN)) return true;
+    return false;
+  }
+
+  static private boolean jj_3_38()
  {
     if (jj_scan_token(OP)) return true;
     return false;
   }
 
-  static private boolean jj_3_75()
+  static private boolean jj_3_83()
  {
-    if (jj_3R_25()) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_69()) {
+    jj_scanpos = xsp;
+    if (jj_3_70()) return true;
+    }
+    xsp = jj_scanpos;
+    if (jj_3_71()) {
+    jj_scanpos = xsp;
+    if (jj_3_72()) {
+    jj_scanpos = xsp;
+    if (jj_3_73()) return true;
+    }
+    }
+    xsp = jj_scanpos;
+    if (jj_3_74()) {
+    jj_scanpos = xsp;
+    if (jj_3_75()) return true;
+    }
     return false;
   }
 
@@ -2004,58 +2066,13 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_68()
- {
-    if (jj_3R_25()) return true;
-    return false;
-  }
-
-  static private boolean jj_3_83()
+  static private boolean jj_3R_24()
  {
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_75()) {
+    if (jj_3_83()) {
     jj_scanpos = xsp;
-    if (jj_3_76()) return true;
-    }
-    xsp = jj_scanpos;
-    if (jj_3_77()) {
-    jj_scanpos = xsp;
-    if (jj_3_78()) {
-    jj_scanpos = xsp;
-    if (jj_3_79()) return true;
-    }
-    }
-    if (jj_scan_token(LPAREN)) return true;
-    xsp = jj_scanpos;
-    if (jj_3_80()) {
-    jj_scanpos = xsp;
-    if (jj_3_81()) return true;
-    }
-    if (jj_scan_token(RPAREN)) return true;
-    return false;
-  }
-
-  static private boolean jj_3_82()
- {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_68()) {
-    jj_scanpos = xsp;
-    if (jj_3_69()) return true;
-    }
-    xsp = jj_scanpos;
-    if (jj_3_70()) {
-    jj_scanpos = xsp;
-    if (jj_3_71()) {
-    jj_scanpos = xsp;
-    if (jj_3_72()) return true;
-    }
-    }
-    xsp = jj_scanpos;
-    if (jj_3_73()) {
-    jj_scanpos = xsp;
-    if (jj_3_74()) return true;
+    if (jj_3_84()) return true;
     }
     return false;
   }
@@ -2069,20 +2086,24 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3R_24()
+  static private boolean jj_3_40()
  {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_82()) {
-    jj_scanpos = xsp;
-    if (jj_3_83()) return true;
-    }
+    if (jj_3R_25()) return true;
     return false;
   }
 
-  static private boolean jj_3_36()
+  static private boolean jj_3_37()
  {
     if (jj_scan_token(ID)) return true;
+    return false;
+  }
+
+  static private boolean jj_3_58()
+ {
+    if (jj_scan_token(ID)) return true;
+    if (jj_scan_token(LBRACK)) return true;
+    if (jj_3R_21()) return true;
+    if (jj_scan_token(RBRACK)) return true;
     return false;
   }
 
@@ -2096,26 +2117,20 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_20()
- {
-    if (jj_3R_19()) return true;
-    return false;
-  }
-
-  static private boolean jj_3_39()
- {
-    if (jj_3R_25()) return true;
-    return false;
-  }
-
-  static private boolean jj_3_24()
+  static private boolean jj_3_25()
  {
     if (jj_3R_21()) return true;
     Token xsp;
     while (true) {
       xsp = jj_scanpos;
-      if (jj_3_23()) { jj_scanpos = xsp; break; }
+      if (jj_3_24()) { jj_scanpos = xsp; break; }
     }
+    return false;
+  }
+
+  static private boolean jj_3_20()
+ {
+    if (jj_3R_19()) return true;
     return false;
   }
 
@@ -2125,16 +2140,7 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_57()
- {
-    if (jj_scan_token(ID)) return true;
-    if (jj_scan_token(LBRACK)) return true;
-    if (jj_3R_21()) return true;
-    if (jj_scan_token(RBRACK)) return true;
-    return false;
-  }
-
-  static private boolean jj_3_62()
+  static private boolean jj_3_63()
  {
     if (jj_scan_token(STR)) return true;
     return false;
@@ -2152,13 +2158,13 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_38()
+  static private boolean jj_3_39()
  {
     if (jj_3R_24()) return true;
     return false;
   }
 
-  static private boolean jj_3_56()
+  static private boolean jj_3_57()
  {
     if (jj_scan_token(STR)) return true;
     return false;
@@ -2168,16 +2174,28 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
  {
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_38()) {
+    if (jj_3_39()) {
     jj_scanpos = xsp;
-    if (jj_3_39()) return true;
+    if (jj_3_40()) return true;
     }
     return false;
   }
 
   static private boolean jj_3_22()
  {
+    if (jj_scan_token(SEMICOLON)) return true;
+    return false;
+  }
+
+  static private boolean jj_3_23()
+ {
     if (jj_3R_21()) return true;
+    return false;
+  }
+
+  static private boolean jj_3_62()
+ {
+    if (jj_scan_token(BOOL)) return true;
     return false;
   }
 
@@ -2187,14 +2205,8 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     if (jj_scan_token(LPAREN)) return true;
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_24()) jj_scanpos = xsp;
+    if (jj_3_25()) jj_scanpos = xsp;
     if (jj_scan_token(RPAREN)) return true;
-    return false;
-  }
-
-  static private boolean jj_3_61()
- {
-    if (jj_scan_token(BOOL)) return true;
     return false;
   }
 
@@ -2211,6 +2223,19 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
+  static private boolean jj_3_56()
+ {
+    if (jj_scan_token(BOOL)) return true;
+    return false;
+  }
+
+  static private boolean jj_3_34()
+ {
+    if (jj_scan_token(COMMA)) return true;
+    if (jj_3R_21()) return true;
+    return false;
+  }
+
   static private boolean jj_3_4()
  {
     if (jj_3R_8()) return true;
@@ -2223,30 +2248,17 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_33()
- {
-    if (jj_scan_token(COMMA)) return true;
-    if (jj_3R_21()) return true;
-    return false;
-  }
-
-  static private boolean jj_3_55()
- {
-    if (jj_scan_token(BOOL)) return true;
-    return false;
-  }
-
   static private boolean jj_3R_11()
  {
     if (jj_scan_token(CMD_RETURN)) return true;
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_22()) jj_scanpos = xsp;
+    if (jj_3_23()) jj_scanpos = xsp;
     if (jj_scan_token(SEMICOLON)) return true;
     return false;
   }
 
-  static private boolean jj_3_34()
+  static private boolean jj_3_35()
  {
     if (jj_scan_token(LBRACK)) return true;
     if (jj_3R_21()) return true;
@@ -2254,22 +2266,22 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_21()
+  static private boolean jj_3_82()
  {
-    if (jj_3R_20()) return true;
-    if (jj_scan_token(SEMICOLON)) return true;
+    if (jj_3R_25()) return true;
     return false;
   }
 
-  static private boolean jj_3_60()
+  static private boolean jj_3_61()
  {
     if (jj_scan_token(NUM)) return true;
     return false;
   }
 
-  static private boolean jj_3_81()
+  static private boolean jj_3_21()
  {
-    if (jj_3R_25()) return true;
+    if (jj_3R_20()) return true;
+    if (jj_scan_token(SEMICOLON)) return true;
     return false;
   }
 
@@ -2282,6 +2294,19 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
   static private boolean jj_3_12()
  {
     if (jj_3R_11()) return true;
+    return false;
+  }
+
+  static private boolean jj_3_75()
+ {
+    if (jj_3R_25()) return true;
+    return false;
+  }
+
+  static private boolean jj_3_50()
+ {
+    if (jj_scan_token(SEMICOLON)) return true;
+    if (jj_3R_6()) return true;
     return false;
   }
 
@@ -2307,7 +2332,10 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     jj_scanpos = xsp;
     if (jj_3_20()) {
     jj_scanpos = xsp;
-    if (jj_3_21()) return true;
+    if (jj_3_21()) {
+    jj_scanpos = xsp;
+    if (jj_3_22()) return true;
+    }
     }
     }
     }
@@ -2327,46 +2355,31 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_28()
+  static private boolean jj_3_29()
  {
     if (jj_scan_token(COMMA)) return true;
     if (jj_3R_18()) return true;
     return false;
   }
 
-  static private boolean jj_3_49()
- {
-    if (jj_scan_token(SEMICOLON)) return true;
-    if (jj_3R_6()) return true;
-    return false;
-  }
-
-  static private boolean jj_3_74()
- {
-    if (jj_3R_25()) return true;
-    return false;
-  }
-
-  static private boolean jj_3_50()
+  static private boolean jj_3_51()
  {
     if (jj_scan_token(COMMA)) return true;
     if (jj_3R_28()) return true;
     return false;
   }
 
-  static private boolean jj_3_54()
+  static private boolean jj_3_55()
  {
     if (jj_scan_token(NUM)) return true;
     return false;
   }
 
-  static private boolean jj_3_67()
+  static private boolean jj_3_68()
  {
     if (jj_scan_token(LPAREN)) return true;
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_60()) {
-    jj_scanpos = xsp;
     if (jj_3_61()) {
     jj_scanpos = xsp;
     if (jj_3_62()) {
@@ -2375,7 +2388,9 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     jj_scanpos = xsp;
     if (jj_3_64()) {
     jj_scanpos = xsp;
-    if (jj_3_65()) return true;
+    if (jj_3_65()) {
+    jj_scanpos = xsp;
+    if (jj_3_66()) return true;
     }
     }
     }
@@ -2385,21 +2400,10 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_35()
- {
-    if (jj_scan_token(ID)) return true;
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_34()) jj_scanpos = xsp;
-    return false;
-  }
-
-  static private boolean jj_3_66()
+  static private boolean jj_3_67()
  {
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_54()) {
-    jj_scanpos = xsp;
     if (jj_3_55()) {
     jj_scanpos = xsp;
     if (jj_3_56()) {
@@ -2408,11 +2412,33 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     jj_scanpos = xsp;
     if (jj_3_58()) {
     jj_scanpos = xsp;
-    if (jj_3_59()) return true;
+    if (jj_3_59()) {
+    jj_scanpos = xsp;
+    if (jj_3_60()) return true;
     }
     }
     }
     }
+    }
+    return false;
+  }
+
+  static private boolean jj_3_36()
+ {
+    if (jj_scan_token(ID)) return true;
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_35()) jj_scanpos = xsp;
+    return false;
+  }
+
+  static private boolean jj_3R_25()
+ {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_67()) {
+    jj_scanpos = xsp;
+    if (jj_3_68()) return true;
     }
     return false;
   }
@@ -2423,29 +2449,24 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3R_25()
- {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_66()) {
-    jj_scanpos = xsp;
-    if (jj_3_67()) return true;
-    }
-    return false;
-  }
-
   static private boolean jj_3R_18()
  {
     Token xsp;
     xsp = jj_scanpos;
-    if (jj_3_35()) {
+    if (jj_3_36()) {
     jj_scanpos = xsp;
-    if (jj_3_36()) return true;
+    if (jj_3_37()) return true;
     }
     xsp = jj_scanpos;
-    if (jj_3_37()) jj_scanpos = xsp;
+    if (jj_3_38()) jj_scanpos = xsp;
     if (jj_scan_token(ATTR)) return true;
     if (jj_3R_21()) return true;
+    return false;
+  }
+
+  static private boolean jj_3_81()
+ {
+    if (jj_3R_24()) return true;
     return false;
   }
 
@@ -2468,22 +2489,37 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     return false;
   }
 
-  static private boolean jj_3_80()
- {
-    if (jj_3R_24()) return true;
-    return false;
-  }
-
-  static private boolean jj_3_51()
+  static private boolean jj_3_52()
  {
     if (jj_scan_token(COMMA)) return true;
     if (jj_3R_28()) return true;
     return false;
   }
 
-  static private boolean jj_3_73()
+  static private boolean jj_3_74()
  {
     if (jj_3R_24()) return true;
+    return false;
+  }
+
+  static private boolean jj_3_31()
+ {
+    if (jj_scan_token(COMMA)) return true;
+    if (jj_3R_18()) return true;
+    return false;
+  }
+
+  static private boolean jj_3_42()
+ {
+    if (jj_scan_token(COMMA)) return true;
+    if (jj_3R_27()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_13()
+ {
+    if (jj_scan_token(CMD_SKIP)) return true;
+    if (jj_scan_token(SEMICOLON)) return true;
     return false;
   }
 
@@ -2496,20 +2532,6 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
     xsp = jj_scanpos;
     if (jj_3_6()) jj_scanpos = xsp;
     if (jj_scan_token(RBRACE)) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_13()
- {
-    if (jj_scan_token(CMD_SKIP)) return true;
-    if (jj_scan_token(SEMICOLON)) return true;
-    return false;
-  }
-
-  static private boolean jj_3_41()
- {
-    if (jj_scan_token(COMMA)) return true;
-    if (jj_3R_27()) return true;
     return false;
   }
 
@@ -2549,7 +2571,7 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
    private static void jj_la1_init_1() {
       jj_la1_1 = new int[] {};
    }
-  static final private JJCalls[] jj_2_rtns = new JJCalls[83];
+  static final private JJCalls[] jj_2_rtns = new JJCalls[84];
   static private boolean jj_rescan = false;
   static private int jj_gc = 0;
 
@@ -2794,7 +2816,7 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
 
   static private void jj_rescan_token() {
     jj_rescan = true;
-    for (int i = 0; i < 83; i++) {
+    for (int i = 0; i < 84; i++) {
     try {
       JJCalls p = jj_2_rtns[i];
       do {
@@ -2884,6 +2906,7 @@ Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
             case 80: jj_3_81(); break;
             case 81: jj_3_82(); break;
             case 82: jj_3_83(); break;
+            case 83: jj_3_84(); break;
           }
         }
         p = p.next;

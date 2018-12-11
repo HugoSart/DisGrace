@@ -25,7 +25,7 @@ public class Lexer {
     public static Block program = new Block();
     public static int blockCount = 0;
     public static Stack<Block> stack = new Stack<Block>();
-    public static int lineCount = 1;
+    public static int lineCount = 0;
 
     public static void main(String[] args) {
         try {
@@ -210,8 +210,9 @@ Command CMD():
     }{(
         cmd = CMD_RETURN() | cmd = CMD_WHILE() | cmd = CMD_SKIP() | cmd = CMD_STOP() | cmd = CMD_WRITE() | cmd = CMD_READ() |
         cmd = CMD_IF() | (cmd = CMD_ATTRIB() <SEMICOLON>) | cmd = CMD_FOR()
-        | cmd = CMD_SUB() <SEMICOLON>
+        | cmd = CMD_SUB() <SEMICOLON> | <SEMICOLON>
     ){
+        cmd.block = Lexer.stack.peek();
         return cmd;
     }}
 
@@ -315,7 +316,7 @@ Command CMD_FOR():
         Command acmd = null;
         List<AttributionCommand> first = new ArrayList<AttributionCommand>(), second = new ArrayList<AttributionCommand>();
     }{(
-        <CMD_FOR> <LPAREN> (acmd = CMD_ATTRIB() {first.add((AttributionCommand)acmd);} (<COMMA> CMD_ATTRIB() {second.add((AttributionCommand)acmd);})*)? <SEMICOLON> cond = EXPRESSION() <SEMICOLON> (CMD_ATTRIB())? (<COMMA> CMD_ATTRIB())* <RPAREN> block = BLOCK(new ArrayList())
+        <CMD_FOR> <LPAREN> (acmd = CMD_ATTRIB() {first.add((AttributionCommand)acmd);} (<COMMA> CMD_ATTRIB() {first.add((AttributionCommand)acmd);})*)? <SEMICOLON> cond = EXPRESSION() <SEMICOLON> ( acmd = CMD_ATTRIB() {second.add((AttributionCommand)acmd);} (<COMMA> acmd = CMD_ATTRIB() {second.add((AttributionCommand)acmd);})*)? <RPAREN> block = BLOCK(new ArrayList())
     ){
 
         if (cond.getType() != Type.BOOL)
@@ -420,6 +421,8 @@ Command CMD_ATTRIB():
             throw new VariableNotInitializedException(var.getId());
         }
 
+
+        cmd.position = arrayExp;
         var.setVarValue(exp);
         cmd.setExpression(exp);
         cmd.setVariable(var);
@@ -620,9 +623,10 @@ Value VALUE():
                 if (arrayExp != null) {
                     if (!var.isArray()) throw new IncompatibleTypeException("Variable " + id + " is not an array");
                     if (arrayExp.getType() != Type.INT) throw new IncompatibleTypeException(Type.INT, arrayExp.getType());
+                    value.position = arrayExp;
                     value.setValue(var);
-                } else if (var.isArray()) {
-                    //throw new IncompatibleTypeException("Variable " + id + " is an array");
+                } else {
+                    value.setValue(var);
                 }
 
                 if (!var.isInitialized() && block.hasIdentifier(var.getId()))
@@ -650,7 +654,6 @@ Operation OPERATION():
         ((v1 = VALUE() | <LPAREN> v1 = OPERATION() <RPAREN>) (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) (v2 = OPERATION() | v2 = VALUE())) |
         ((v1 = VALUE() | <LPAREN> v1 = OPERATION() <RPAREN>) (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) <LPAREN>(v2 = OPERATION() | v2 = VALUE())<RPAREN>)
     ){
-
         Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
         op.setOperands(v1, v2);
         return op;

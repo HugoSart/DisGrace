@@ -6,10 +6,10 @@ import com.hugovs.jps.structure.llvm.LlvmUtil;
 
 public class Value implements LlvmRepresentable {
 
+    public Value() {}
     private Type type;
     private Object value = null;
-
-    public Value() {}
+    public Expression position = null;
 
     public Value(Type type, Object value) {this.type=type; this.value=value;}
 
@@ -37,10 +37,23 @@ public class Value implements LlvmRepresentable {
     public LlvmIR valueIR(int n) {
         String s = Util.spaces(n);
         if (value == null) return new LlvmIR("", "null");
-        if (value instanceof Integer) return new LlvmIR("", value.toString());
+        if (value instanceof Integer) {
+            return new LlvmIR("", value.toString());
+        }
         if (value instanceof Boolean) return new LlvmIR("", (Boolean)value ? "true" : "false");
         if (value instanceof String) return new LlvmIR("", "getelementptr [" + (((String) value).length() + 1) + " x i8]* c\"" + ((String) value).replace('\"', ' ') + "\\A0\00\", i64 0, i64 0");
-        if (value instanceof Variable) return ((Variable) value).toIR(0);
+        if (value instanceof Variable) {
+            Variable v= (Variable) value;
+            if (position != null) {
+                LlvmIR pos = position.toIR(n);
+                return new LlvmIR(
+                        pos.code,
+                        "getelementptr " + v.getType().llvmCode + ", " + v.getType().llvmCode + "*, %" + v.getId()+ ", i32 " + pos.result + ", i32 2"
+                );
+            } else {
+                return ((Variable) value).toIR(n);
+            }
+        }
         if (value instanceof Subprogram) {
             Subprogram sub = (Subprogram)value;
             String param = "";
@@ -59,10 +72,9 @@ public class Value implements LlvmRepresentable {
     @Override
     public LlvmIR toIR(int ident) {
         String s = Util.spaces(ident);
-        System.out.println(value instanceof LlvmRepresentable);
         int r;
         LlvmIR ir = valueIR(ident);
-        return new LlvmIR(s + ir.code + s + "%r" + (r = LlvmUtil.rCount++) + " = " + ir.result + "\n", "%r" + r);
+        return new LlvmIR(s + (ir == null ? "???" : ir.code) + s + "%r" + (r = LlvmUtil.rCount++) + " = " + (ir == null ? "???" : ir.result) + "\n", "%r" + r);
     }
 
 }

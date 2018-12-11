@@ -11,7 +11,8 @@ public class UndeclaredIdentifierException extends GraceException {
         super("Reference found to an unknown identifier");
     }
 
-    public UndeclaredIdentifierException(String message) {
-        super(message);
+    public UndeclaredIdentifierException(String id) {
+        super("Reference found to an unknown identifier " + id);
     }
+
 }
