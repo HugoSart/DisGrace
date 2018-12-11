@@ -5,7 +5,7 @@ package com.hugovs.jps.structure.exception;
  * Date: 15/10/2018<br/>
  * Time: 10:31<br/>
  */
-public class DuplicatedIdentifierException extends RuntimeException {
+public class DuplicatedIdentifierException extends GraceException {
 
     public DuplicatedIdentifierException() {
         super("Attempt to declare an already declared identifier");

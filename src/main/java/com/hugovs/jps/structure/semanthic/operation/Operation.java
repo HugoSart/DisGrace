@@ -1,8 +1,12 @@
 package com.hugovs.jps.structure.semanthic.operation;
 
 import com.hugovs.jps.Token;
+import com.hugovs.jps.structure.llvm.LlvmIR;
+import com.hugovs.jps.structure.llvm.LlvmRepresentable;
 import com.hugovs.jps.structure.exception.IncompatibleTypeException;
+import com.hugovs.jps.structure.llvm.LlvmUtil;
 import com.hugovs.jps.structure.semanthic.Type;
+import com.hugovs.jps.structure.semanthic.Util;
 import com.hugovs.jps.structure.semanthic.Value;
 import com.hugovs.jps.structure.semanthic.Variable;
 import com.hugovs.jps.structure.semanthic.operation.bool.AndOperation;
@@ -12,14 +16,16 @@ import com.hugovs.jps.structure.semanthic.operation.compare.*;
 import com.hugovs.jps.structure.semanthic.operation.integer.*;
 import com.hugovs.jps.structure.semanthic.operation.string.ConcatOperation;
 
-public abstract class Operation extends Value {
+public abstract class Operation extends Value implements LlvmRepresentable {
 
+    protected String llvmCode = "";
     private Value firstOperand, secondOperand;
 
     private Type firstOperandType, secondOperandType;
 
-    public Operation(Type firstOperandType, Type secondOperandType, Type type) {
+    public Operation(String llvmCode, Type firstOperandType, Type secondOperandType, Type type) {
         setType(type);
+        this.llvmCode = llvmCode;
         this.firstOperandType = firstOperandType;
         this.secondOperandType = secondOperandType;
     }
@@ -137,4 +143,21 @@ public abstract class Operation extends Value {
     public String toString() {
         return getClass().getSimpleName() + "<firstOperand=" + firstOperand + ", secondOperand=" + secondOperand + ", type=" + getType() + ">";
     }
+
+    @Override
+    public LlvmIR toIR(int n) {
+        String s = Util.spaces(n);
+        int ir;
+        LlvmIR fir = getFirstOperand().toIR(n);
+        LlvmIR sir = getSecondOperand().toIR(n);
+        String r = s + "%r" + (ir = LlvmUtil.rCount++) + " = " + llvmCode + " " + Type.INT.llvmCode + " " + fir.result + ", " + sir.result + "\n";
+
+        return new LlvmIR(
+                fir.code +
+                        sir.code +
+                        r,
+                "%r" + ir
+        );
+    }
+
 }

@@ -1,5 +1,7 @@
 package com.hugovs.jps.structure.semanthic;
 
+import com.hugovs.jps.structure.llvm.LlvmIR;
+import com.hugovs.jps.structure.llvm.LlvmRepresentable;
 import com.hugovs.jps.structure.exception.DuplicatedIdentifierException;
 import com.hugovs.jps.structure.exception.UndeclaredIdentifierException;
 import com.hugovs.jps.structure.semanthic.command.Command;
@@ -9,11 +11,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Block {
+public class Block implements LlvmRepresentable {
 
     private Block parent = null;
     private Map<String, Identifier> identifiers = new HashMap<>();
     private List<Command> commands = new ArrayList<>();
+    public static boolean isRootBlock = true;
+
+    public StringReference inLabel = new StringReference(null);
+    public StringReference outLabel = new StringReference(null);
 
     public Block() {
 
@@ -111,6 +117,24 @@ public class Block {
         for (int i = 0; i < s; i++)
             builder.append(" ");
         return builder.toString();
+    }
+
+    @Override
+    public LlvmIR toIR(int n) {
+
+        String ir = "";
+
+        // Global
+       if (isRootBlock) {
+            ir += "declare i32 @puts(i8* nocapture) nounwind\n\n";
+            isRootBlock = false;
+       }
+
+        for (Identifier id : identifiers.values())
+            if (id instanceof Subprogram) ir += id.toIR(n) + "\n";
+        for (Command command : commands)
+            ir += command.toIR(n) + "\n";
+        return new LlvmIR(ir, "");
     }
 
 }

@@ -4,8 +4,10 @@ import com.hugovs.jps.structure.semanthic.Type;
 
 public abstract class CompareOperation extends Operation {
 
-    public CompareOperation() {
-        super(Type.INT, Type.INT, Type.BOOL);
+    protected String llvmCode = "";
+
+    public CompareOperation(String llvmCode) {
+        super(llvmCode, Type.INT, Type.INT, Type.BOOL);
     }
 
 }

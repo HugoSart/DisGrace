@@ -1,6 +1,8 @@
 package com.hugovs.jps.structure.semanthic;
 
-public abstract class Identifier {
+import com.hugovs.jps.structure.llvm.LlvmRepresentable;
+
+public abstract class Identifier extends Value implements LlvmRepresentable {
 
     private String id = "";
 

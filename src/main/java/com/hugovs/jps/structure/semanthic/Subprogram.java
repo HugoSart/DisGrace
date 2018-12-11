@@ -1,13 +1,16 @@
 package com.hugovs.jps.structure.semanthic;
 
+import com.hugovs.jps.structure.llvm.LlvmIR;
+import com.hugovs.jps.structure.llvm.LlvmRepresentable;
 import com.hugovs.jps.structure.exception.DuplicatedIdentifierException;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Subprogram extends Identifier {
+public class Subprogram extends Identifier implements LlvmRepresentable {
 
     private List<Variable> parameters = new ArrayList<>();
+    public List<Expression> arguments = new ArrayList<>();
     private Type returnType = Type.VOID;
     private Block block = null;
 
@@ -40,10 +43,10 @@ public class Subprogram extends Identifier {
     }
 
     public void setBlock(Block block) {
-        for (Variable parameter : parameters)
+       /* for (Variable parameter : parameters)
             if (block.getIdentifier(parameter.getId()) != null)
                 throw new DuplicatedIdentifierException(parameter.getId() + " - in block manipulation");
-
+*/
         this.block = block;
     }
 
@@ -61,5 +64,24 @@ public class Subprogram extends Identifier {
         return getClass().getSimpleName() + "<id=" + getId() + ", returnType: " + returnType + ", " +
                 "parameters=[" + builder.toString() + "], " +
                 "block=" + block + ">";
+    }
+
+    @Override
+    public LlvmIR toIR(int n) {
+
+        String s = Util.spaces(n);
+
+        String ir = s + "define " + returnType.llvmCode + " @" + getId() + "(";
+        for (int i = 0; i < parameters.size(); i++) {
+            ir += parameters.get(i).getType().llvmCode + " %" + parameters.get(i).getId();
+            if (i < parameters.size() - 1) ir += ", ";
+        }
+
+        ir += ") {\n";
+        ir += s + "entry:\n";
+        ir += block.toIR(n + 4);
+        ir += s + "\n}";
+
+        return new LlvmIR(ir, "");
     }
 }

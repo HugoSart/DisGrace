@@ -1,4 +1,7 @@
 package com.hugovs.jps.structure.semanthic.command;
 
-public abstract class Command {
+import com.hugovs.jps.structure.llvm.LlvmRepresentable;
+
+public abstract class Command implements LlvmRepresentable {
+
 }

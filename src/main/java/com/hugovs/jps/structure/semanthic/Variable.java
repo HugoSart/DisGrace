@@ -1,18 +1,20 @@
 package com.hugovs.jps.structure.semanthic;
 
+import com.hugovs.jps.structure.llvm.LlvmIR;
+import com.hugovs.jps.structure.llvm.LlvmRepresentable;
 import com.hugovs.jps.structure.exception.IncompatibleTypeException;
 import com.hugovs.jps.structure.exception.InvalidArraySizeException;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Variable extends Identifier {
+public class Variable extends Identifier implements LlvmRepresentable {
 
     private Type type = Type.VOID;
     private boolean parameter = false;
     private boolean isArray = false;
     private int length = 1;
-    private Value value = null;
+    private Value varValue = null;
     private List<Value> values = new ArrayList<>();
 
     public Type getType() {
@@ -20,7 +22,7 @@ public class Variable extends Identifier {
     }
 
     public void setType(Type type) {
-        //if (value != null && value.getType() != type) throw new IncompatibleTypeException(type, value.getType());
+        //if (varValue != null && varValue.getType() != type) throw new IncompatibleTypeException(type, varValue.getType());
         if (values != null)
             for (Value value : values)
                 if (value != null && value.getType() != type)
@@ -29,18 +31,18 @@ public class Variable extends Identifier {
     }
 
     public boolean isInitialized() {
-        return value != null;
+        return varValue != null;
     }
 
-    public void setValue(Value value) {
-        this.value = value;
+    public void setVarValue(Value value) {
+        this.varValue = value;
     }
 
     public void addValue(Value value) {
         values.add(value);
     }
 
-    public Value getValue(int i) {
+    public Value getVarValue(int i) {
         return values.get(i);
     }
 
@@ -48,8 +50,8 @@ public class Variable extends Identifier {
         this.values = values;
     }
 
-    public Value getValue() {
-        return value;
+    public Value getVarValue() {
+        return varValue;
     }
 
     public boolean isArray() {
@@ -80,7 +82,12 @@ public class Variable extends Identifier {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "<id=" + getId() + ", type=" + type + ", isArray=" + isArray + ", length=" + length + ", value=" + value + ", " +
+        return getClass().getSimpleName() + "<id=" + getId() + ", type=" + type + ", isArray=" + isArray + ", length=" + length + ", varValue=" + varValue + ", " +
                 "values=" + Util.arrayToString(values.toArray()) + ">";
+    }
+
+    @Override
+    public LlvmIR toIR(int ident) {
+        return new LlvmIR("", "%" + getId());
     }
 }

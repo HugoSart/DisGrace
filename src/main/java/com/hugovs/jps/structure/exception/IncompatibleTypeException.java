@@ -2,11 +2,7 @@ package com.hugovs.jps.structure.exception;
 
 import com.hugovs.jps.structure.semanthic.Type;
 
-public class IncompatibleTypeException extends RuntimeException {
-
-    public IncompatibleTypeException() {
-        super();
-    }
+public class IncompatibleTypeException extends GraceException {
 
     public IncompatibleTypeException(String msg) {
         super(msg);

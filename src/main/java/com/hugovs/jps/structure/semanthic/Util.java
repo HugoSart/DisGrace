@@ -20,4 +20,11 @@ public class Util {
         return builder.toString();
     }
 
+    public static String spaces(int i) {
+        StringBuilder b = new StringBuilder();
+        for (int a = 0; a < i; a++)
+            b.append(' ');
+        return b.toString();
+    }
+
 }

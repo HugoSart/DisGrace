@@ -25,21 +25,37 @@ public class Lexer {
     public static Block program = new Block();
     public static int blockCount = 0;
     public static Stack<Block> stack = new Stack<Block>();
+    public static int lineCount = 1;
 
     public static void main(String[] args) {
         try {
             new Lexer(new java.io.FileInputStream(args[0])).S();
-                   System.out.println("Syntax is okay");
+            System.out.println("Syntax is okay");
+            System.out.println("Program structure: ");
+            Lexer.program.print();
         } catch (Throwable e) {
                // Catching Throwable is ugly but JavaCC throws Error objects!
              System.out.println("Syntax check failed: " + e.getMessage());
+             e.printStackTrace();
         }
+
+        try {
+            String ir = "";
+             System.out.println("------------------- LLVM IR -------------------\n\n" + (ir = Lexer.program.toIR(0).code) + "--------------------------------------------------");
+             FileOutputStream out = new FileOutputStream("ir.ll");
+             out.write(ir.getBytes());
+             out.close();
+        } catch (Throwable e) {
+            System.out.println("Failed to create LLVM IR");
+            e.printStackTrace();
+        }
+
     }
 }
 
 PARSER_END(Lexer)
 
-SKIP: {" " | "\t" | "\n" | "\r" | < "//" (~["\r", "\n"])* > }
+SKIP: {" " | "\t" | "\n" { Lexer.lineCount++; } | "\r" | < "//" (~["\r", "\n"])* > }
 
 TOKEN: {
       <LPAREN: "(">
@@ -79,7 +95,7 @@ TOKEN: {
     // Primitives
     | <STR: ["\""] (<CHAR> | <NUM> | " " | <SPECIAL_CHAR>)* ["\""]>
     | <CHAR: ["a"-"z"] | ["A"-"Z"] | ["_"]>
-    | <NUM: (["0"-"9"])+>
+    | <NUM: ("-")? (["0"-"9"])+>
     | <SPECIAL_CHAR: "!" | ["#"-"~"] >
 }
 
@@ -107,7 +123,7 @@ void PROGRAM():
         if (!(main instanceof Subprogram))
             throw new IncompatibleTypeException("Main not found");
 
-        block.print();
+        Lexer.program = program;
 
     }}
 
@@ -119,18 +135,18 @@ Subprogram SUB_PROGRAM():
         Token typeToken = null, idToken = null;
         List<Variable> parameters = new ArrayList<Variable>();
     }{(
-        <DEF> idToken = <ID> <LPAREN> (parameters = PARAMETERS())? <RPAREN> (<COLON> typeToken = <TYPE>)? block = BLOCK(parameters)
+        (<DEF> idToken = <ID> <LPAREN> (parameters = PARAMETERS())? <RPAREN> (<COLON> typeToken = <TYPE>)?)
+            {
+                    String id = idToken.toString();
+                    Type returnType = typeToken == null ? Type.VOID : Type.valueOf(typeToken.toString().toUpperCase());
+                    subprogram.setId(id);
+                    subprogram.setReturnType(returnType);
+                    subprogram.setParameters(parameters);
+                    Lexer.stack.peek().addIdentifier(subprogram);
+            }
+         block = BLOCK(parameters)
     ){
-
-        String id = idToken.toString();
-        Type returnType = typeToken == null ? Type.VOID : Type.valueOf(typeToken.toString().toUpperCase());
-
-        subprogram.setId(id);
-        subprogram.setReturnType(returnType);
         subprogram.setBlock(block);
-        subprogram.setParameters(parameters);
-
-        block.getParent().addIdentifier(subprogram);
 
         for (Command cmd : block.getCommands())
             if (cmd instanceof ReturnCommand) {
@@ -167,7 +183,7 @@ Block BLOCK(List<Variable> parameters):
         Lexer.stack.push(block);
         List<Variable> varList = null;
     }{(
-        <LBRACE> (varList = VAR_SECTION() {block.addAll(varList);} )? (STATEMENT())? <RBRACE>
+        (<LBRACE> (varList = VAR_SECTION() {block.addAll(varList);} )? (STATEMENT())? <RBRACE>) | STATEMENT()
     ){
 
         Lexer.stack.pop();
@@ -182,10 +198,9 @@ void STATEMENT():
         Subprogram sub = null;
         Command cmd = null;
     }{(
-        (sub = SUB_PROGRAM() | cmd = CMD()) (STATEMENT())?//|   SUB_PROGRAM_CALL()
+        (sub = SUB_PROGRAM() | cmd = CMD() {block.addCommand(cmd);}) (STATEMENT())?//|   SUB_PROGRAM_CALL()
     ){
-        if (cmd != null)
-            block.addCommand(cmd);
+
     }}
 
 // Command syntax
@@ -195,7 +210,7 @@ Command CMD():
     }{(
         cmd = CMD_RETURN() | cmd = CMD_WHILE() | cmd = CMD_SKIP() | cmd = CMD_STOP() | cmd = CMD_WRITE() | cmd = CMD_READ() |
         cmd = CMD_IF() | (cmd = CMD_ATTRIB() <SEMICOLON>) | cmd = CMD_FOR()
-        | cmd = CMD_SUB()
+        | cmd = CMD_SUB() <SEMICOLON>
     ){
         return cmd;
     }}
@@ -220,7 +235,7 @@ Command CMD_SUB():
         List<Expression> arguments = new ArrayList<Expression>();
         Expression exp = null;
     }{(
-        idToken = <ID> <LPAREN> (exp = EXPRESSION() {arguments.add(exp);} (<COMMA> exp = EXPRESSION() {arguments.add(exp);})* )? <RPAREN> <SEMICOLON>
+        idToken = <ID> <LPAREN> (exp = EXPRESSION() {arguments.add(exp);} (<COMMA> exp = EXPRESSION() {arguments.add(exp);})* )? <RPAREN>
     ){
 
         Identifier id = block.getIdentifier(idToken.toString());
@@ -295,10 +310,23 @@ Command CMD_ELSE():
 Command CMD_FOR():
     {
         ForCommand cmd = new ForCommand();
+        Expression cond = null;
+        Block block = null;
+        Command acmd = null;
+        List<AttributionCommand> first = new ArrayList<AttributionCommand>(), second = new ArrayList<AttributionCommand>();
     }{(
-        <CMD_FOR> <LPAREN> (CMD_ATTRIB())? (<COMMA> CMD_ATTRIB())* <SEMICOLON> EXPRESSION() <SEMICOLON> (CMD_ATTRIB())? (<COMMA> CMD_ATTRIB())* <RPAREN> BLOCK(new ArrayList())
+        <CMD_FOR> <LPAREN> (acmd = CMD_ATTRIB() {first.add((AttributionCommand)acmd);} (<COMMA> CMD_ATTRIB() {second.add((AttributionCommand)acmd);})*)? <SEMICOLON> cond = EXPRESSION() <SEMICOLON> (CMD_ATTRIB())? (<COMMA> CMD_ATTRIB())* <RPAREN> block = BLOCK(new ArrayList())
     ){
+
+        if (cond.getType() != Type.BOOL)
+            throw new IncompatibleTypeException(Type.BOOL, cond.getType());
+
+        cmd.setFirstAttributionCommands(first);
+        cmd.setSecondAttributionCommands(second);
+        cmd.setCondition(cond);
+        cmd.setBlock(block);
         return cmd;
+
     }}
 Command CMD_READ():
     {
@@ -320,7 +348,7 @@ Command CMD_READ():
         if (arrayExp != null && !var.isArray())
             throw new IncompatibleTypeException("Variable " + var.getId() + " is not and array");
 
-        var.setValue(new Value(var.getType(), null));
+        var.setVarValue(new Value(var.getType(), null));
         cmd.setVariable(var);
         return cmd;
     }}
@@ -341,6 +369,7 @@ Command CMD_STOP():
     }{(
         <CMD_STOP> <SEMICOLON>
     ){
+        cmd.label = Lexer.stack.peek().outLabel;
         return cmd;
     }}
 Command CMD_SKIP():
@@ -349,6 +378,7 @@ Command CMD_SKIP():
     }{(
         <CMD_SKIP> <SEMICOLON>
     ){
+        cmd.label = Lexer.stack.peek().inLabel;
         return cmd;
     }}
 
@@ -358,8 +388,9 @@ Command CMD_ATTRIB():
         Block block = Lexer.stack.peek();
         Expression arrayExp = null, exp = null;
         Token idToken = null;
+        Token opToken = null;
     }{(
-        (idToken = <ID> (<LBRACK> arrayExp = EXPRESSION() <RBRACK>)? | <ID>) (<OP>)? <ATTR> exp = EXPRESSION()
+        (idToken = <ID> (<LBRACK> arrayExp = EXPRESSION() <RBRACK>)? | <ID>) (opToken = <OP>)? <ATTR> exp = EXPRESSION()
     ){
 
         String idStr = idToken.toString();
@@ -372,14 +403,33 @@ Command CMD_ATTRIB():
         if (var.getType() != exp.getType())
             throw new IncompatibleTypeException(var.getType(), exp.getType());
 
-        var.setValue(exp);
+        if (arrayExp != null && !var.isArray())
+            throw new IncompatibleTypeException("Variable " + var.getId() + " is not and array.");
+
+        if (arrayExp != null && arrayExp.getType() != Type.INT)
+            throw new IncompatibleTypeException(Type.INT, arrayExp.getType());
+
+        if (opToken != null && var.getVarValue() != null) {
+            Operation op = Operation.getForToken(opToken, null, null, var);
+            op.setFirstOperand(var);
+            op.setSecondOperand(exp);
+            exp = new Expression();
+            exp.setType(var.getType());
+            exp.addOperation(op);
+        } else if (opToken != null && var.getVarValue() == null) {
+            throw new VariableNotInitializedException(var.getId());
+        }
+
+        var.setVarValue(exp);
+        cmd.setExpression(exp);
+        cmd.setVariable(var);
 
         return cmd;
     }}
 
 Expression EXPRESSION():
     {
-        Expression exp = new Expression();
+        Expression exp = new Expression(), first, second;
         Value v = null;
         Operation op = null;
     }{(
@@ -423,6 +473,7 @@ List<Variable> VAR_LIST():
         Expression arrayExp = null, attrExp = null;
         List<Value> list = new ArrayList<Value>();
         boolean isArray = false;
+        AttributionCommand cmd = new AttributionCommand();
     }{(
 
         idToken = <ID> <LBRACK> arrayExp = EXPRESSION() <RBRACK> (<ATTR> list = ARRAY_INIT())? (<COMMA> ret = VAR_LIST())? { isArray = true; }
@@ -434,9 +485,12 @@ List<Variable> VAR_LIST():
         if (arrayExp != null && arrayExp.getType() != Type.INT)
             throw new IncompatibleTypeException(Type.INT, arrayExp.getType());
 
-        if (attrExp != null && arrayExp == null)
-            var.setValue(attrExp);
-        else if (arrayExp != null) {
+        if (attrExp != null && arrayExp == null) {
+            var.setVarValue(attrExp);
+            cmd.setVariable(var);
+            cmd.setExpression(attrExp);
+            Lexer.stack.peek().addCommand(cmd);
+        } else if (arrayExp != null) {
             var.setValues(list);
         }
 
@@ -505,7 +559,14 @@ List<Variable> PARAM_LIST():
         var.setId(id);
         var.setArray(isArray);
         var.setLength(Integer.MAX_VALUE);
-        var.setValue(new Value());
+
+        Variable aux = new Variable();
+        aux.setId(var.getId());
+        aux.setType(var.getType());
+        Value value = new Value(var.getType(), aux);
+
+        var.setValue(value);
+        var.setVarValue(new Value());
         var.setParameter(true);
         varList.addAll(ret);
         varList.add(var);
@@ -518,12 +579,16 @@ Value VALUE():
         Block block = Lexer.stack.peek();
         Value value = new Value();
         Expression arrayExp = null;
+        Expression ter = null;
+        Command sub = null;
     }{(
-        (numToken = <NUM> | boolToken = <BOOL> | strToken = <STR> | idToken = <ID> <LBRACK> arrayExp = EXPRESSION() <RBRACK> | idToken = <ID>) |
-        (<LPAREN> (numToken = <NUM> | boolToken = <BOOL> | strToken = <STR> | idToken = <ID> <LBRACK> numToken = <NUM> <RBRACK> | idToken = <ID>) <RPAREN>)
+        (numToken = <NUM> | boolToken = <BOOL> | strToken = <STR> | idToken = <ID> <LBRACK> arrayExp = EXPRESSION() <RBRACK> | sub = CMD_SUB() | idToken = <ID>) |
+        (<LPAREN> (numToken = <NUM> | boolToken = <BOOL> | strToken = <STR> | idToken = <ID> <LBRACK> numToken = <NUM> <RBRACK> | sub = CMD_SUB() | idToken = <ID>) <RPAREN>)
     ){
 
         Type type = null;
+
+        if (ter != null) return ter;
 
         Integer num = null;
         if (numToken != null && idToken == null) {
@@ -554,14 +619,22 @@ Value VALUE():
                 type = var.getType();
                 if (arrayExp != null) {
                     if (!var.isArray()) throw new IncompatibleTypeException("Variable " + id + " is not an array");
+                    if (arrayExp.getType() != Type.INT) throw new IncompatibleTypeException(Type.INT, arrayExp.getType());
+                    value.setValue(var);
                 } else if (var.isArray()) {
                     //throw new IncompatibleTypeException("Variable " + id + " is an array");
                 }
 
                 if (!var.isInitialized() && block.hasIdentifier(var.getId()))
                     throw new VariableNotInitializedException(var.getId());
-
             }
+        }
+
+        if (sub != null) {
+            SubCommand s = (SubCommand)sub;
+            type = s.getSubprogram().getReturnType();
+            s.getSubprogram().arguments = s.getArguments();
+            value.setValue(s.getSubprogram());
         }
 
         value.setType(type);
@@ -574,7 +647,8 @@ Operation OPERATION():
         Value v1 = null, v2 = null;
         Token tokenOp = null, tokenBop = null, tokenCop = null;
     }{(
-        ((v1 = VALUE() | <LPAREN> v1 = OPERATION() <RPAREN>) (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) (v2 = OPERATION() | v2 = VALUE()))
+        ((v1 = VALUE() | <LPAREN> v1 = OPERATION() <RPAREN>) (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) (v2 = OPERATION() | v2 = VALUE())) |
+        ((v1 = VALUE() | <LPAREN> v1 = OPERATION() <RPAREN>) (tokenOp = <OP> | tokenBop = <BOP> | tokenCop = <COP>) <LPAREN>(v2 = OPERATION() | v2 = VALUE())<RPAREN>)
     ){
 
         Operation op = Operation.getForToken(tokenOp, tokenCop, tokenBop, v1);
@@ -582,6 +656,5 @@ Operation OPERATION():
         return op;
 
     }}
-
 
 
