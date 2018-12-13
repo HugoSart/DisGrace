@@ -23,6 +23,8 @@ def main(): int {
 
     write "Digite os valores do arranjo:\n";
 
+    if (!true) return;
+
     // Lê o valor do array
     for (i=0; i<10; i+=1) {
         write "A[", i, "] = ";

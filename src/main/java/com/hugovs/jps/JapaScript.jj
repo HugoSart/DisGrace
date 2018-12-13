@@ -70,7 +70,8 @@ TOKEN: {
     | <ATTR: "=">
     | <OP: "+" | "-" | "/" | "*" | "%">
     | <COP: "<" | ">" | "<=" | ">=" | "==" | "!=">
-    | <BOP: "!" | "&&" | "||" >
+    | <BOP: "&&" | "||" >
+    | <NOT: "!">
 
     // Restricted
     | <DEF: "def">
@@ -435,8 +436,9 @@ Expression EXPRESSION():
         Expression exp = new Expression(), first, second;
         Value v = null;
         Operation op = null;
+        Token notToken = null;
     }{(
-        op = OPERATION() | v = VALUE()
+        (notToken = <NOT>)? (op = OPERATION() | v = VALUE())
     ){
 
         if (v != null) {
@@ -447,6 +449,11 @@ Expression EXPRESSION():
             exp.setSingleton(false);
             exp.setType(op.getType());
             exp.addOperation(op);
+        }
+
+        if (notToken != null) {
+             if ((op != null && op.getType() != Type.BOOL)) throw new IncompatibleTypeException(Type.BOOL, op.getType());
+             if ((v != null && v.getType() != Type.BOOL)) throw new IncompatibleTypeException(Type.BOOL, v.getType());
         }
 
         return exp;
